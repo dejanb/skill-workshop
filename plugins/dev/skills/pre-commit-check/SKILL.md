@@ -1,6 +1,6 @@
 ---
 name: pre-commit-check
-description: Run project checks before committing. Use when the user asks to commit changes, prepare a commit, or push code.
+description: Run project checks before committing. Use when the user asks to commit changes or prepare a commit.
 ---
 
 ## Steps
