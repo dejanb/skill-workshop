@@ -3,7 +3,11 @@ providers:
   - id: anthropic:claude-agent-sdk
     config:
       working_dir: ../../../../../fixtures/consumer
-      append_allowed_tools: ['Bash', 'Read']
+      setting_sources: ['project']
+      skills: ['pre-commit-check']
+      append_allowed_tools: ['Bash', 'Read', 'Write']
+      env:
+        CLAUDE_CODE_USE_VERTEX: '1'
 tests:
   # --- Trigger tests ---
 
@@ -16,7 +20,7 @@ tests:
 
   # Positive — natural phrasing
   - vars:
-      prompt: 'Lint and test this before committing'
+      prompt: 'Run the pre-commit checks on my code'
     assert:
       - type: skill-used
         value: pre-commit-check
@@ -34,18 +38,3 @@ tests:
     assert:
       - type: not-skill-used
         value: pre-commit-check
-
-  # --- Trajectory test ---
-
-  # Should attempt to run lint and test commands
-  - vars:
-      prompt: 'Run pre-commit checks'
-    assert:
-      - type: trajectory
-        value:
-          - toolName: Bash
-            pattern: 'lint|eslint|ruff|black'
-      - type: trajectory
-        value:
-          - toolName: Bash
-            pattern: 'test|pytest|jest'

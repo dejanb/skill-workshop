@@ -1,0 +1,33 @@
+description: 'Security review — execution tests with planted diffs'
+providers:
+  - id: anthropic:claude-agent-sdk
+    config:
+      working_dir: ../../../../../fixtures/consumer
+      env:
+        CLAUDE_CODE_USE_VERTEX: '1'
+prompts:
+  - file://prompt_template.txt
+tests:
+  # Recall — planted command injection vulnerability
+  - vars:
+      diff: file://diffs/recall-cmdinject.diff
+    assert:
+      - type: javascript
+        value: |
+          const match = output.match(/```json\s*([\s\S]*?)```/);
+          const issues = match ? JSON.parse(match[1]).issues || [] : [];
+          const found = issues.some(i =>
+            /command.inject|shell/i.test(i.description));
+          return { pass: found, score: found ? 1 : 0,
+            reason: found ? 'Detected injection' : 'Missed injection' };
+
+  # Precision — safe subprocess usage, should not flag
+  - vars:
+      diff: file://diffs/precision-subprocess-safe.diff
+    assert:
+      - type: javascript
+        value: |
+          const match = output.match(/```json\s*([\s\S]*?)```/);
+          const issues = match ? JSON.parse(match[1]).issues || [] : [];
+          return { pass: issues.length === 0, score: issues.length === 0 ? 1 : 0,
+            reason: issues.length === 0 ? 'No false positive' : `False positive: ${issues[0].description}` };

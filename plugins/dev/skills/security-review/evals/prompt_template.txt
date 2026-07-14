@@ -1,0 +1,7 @@
+Review the following code diff for security vulnerabilities. Focus on command injection, hardcoded secrets, unsafe deserialization, and path traversal.
+
+Report findings as a JSON object with an "issues" array. Each issue should have "file", "line", and "description" fields. If no issues are found, return {"issues": []}.
+
+Here is the diff to review:
+
+{{diff}}

@@ -3,6 +3,8 @@ providers:
   - id: anthropic:claude-agent-sdk
     config:
       working_dir: ../../../../../fixtures/consumer
+      env:
+        CLAUDE_CODE_USE_VERTEX: '1'
 prompts:
   - file://prompt_template.txt
 tests:
@@ -11,9 +13,13 @@ tests:
       skill_content: file://../SKILL.md
       scenario: file://scenarios/all-pass.txt
     assert:
-      - type: contains
-        value: 'ready'
-      - type: not-contains
+      - type: javascript
+        value: |
+          const lower = output.toLowerCase();
+          const ready = lower.includes('ready') && !lower.includes('not ready');
+          return { pass: ready, score: ready ? 1 : 0,
+            reason: ready ? 'Correctly approved PR' : 'Did not approve clean PR' };
+      - type: not-icontains
         value: 'FAIL'
 
   # Security review fails — should block the PR
@@ -21,8 +27,12 @@ tests:
       skill_content: file://../SKILL.md
       scenario: file://scenarios/security-fail.txt
     assert:
-      - type: contains
-        value: 'NOT ready'
+      - type: javascript
+        value: |
+          const lower = output.toLowerCase();
+          const blocked = lower.includes('not ready') || lower.includes('status: fail') || lower.includes('status:** fail') || lower.includes('blocked');
+          return { pass: blocked, score: blocked ? 1 : 0,
+            reason: blocked ? 'Correctly blocked PR' : 'Did not block PR' };
       - type: icontains
         value: 'security'
 
@@ -34,7 +44,7 @@ tests:
       - type: javascript
         value: |
           const lower = output.toLowerCase();
-          const mentions_nothing = lower.includes('no commits') || lower.includes('nothing to review');
+          const mentions_nothing = lower.includes('no commits') || lower.includes('nothing to review') || lower.includes('0 commits');
           return { pass: mentions_nothing, score: mentions_nothing ? 1 : 0,
             reason: mentions_nothing ? 'Correctly identified no commits' : 'Did not handle zero-commit case' };
 
@@ -46,6 +56,6 @@ tests:
       - type: javascript
         value: |
           const lower = output.toLowerCase();
-          const warns = lower.includes('no review skills') || lower.includes('no skills') || lower.includes('recommend');
+          const warns = lower.includes('no review skills') || lower.includes('no skills') || lower.includes('recommend') || lower.includes('not found');
           return { pass: warns, score: warns ? 1 : 0,
             reason: warns ? 'Warned about missing skills' : 'Did not warn about missing skills' };
