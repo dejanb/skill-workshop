@@ -1,0 +1,12 @@
+Step 1 — Count commits ahead of main:
+2 commits ahead of main.
+
+Step 2 — Discover review skills:
+Found skills: security-review, style-check
+
+Step 3 — Run each review skill:
+security-review: FAIL — found 1 issue: command injection via subprocess.run(user_input, shell=True) in src/app.py:30.
+style-check: PASS — all naming conventions followed.
+
+Step 4 — Aggregate:
+1 of 2 checks failed. PR is NOT ready for review. Fix security issues first.

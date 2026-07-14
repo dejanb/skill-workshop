@@ -1,0 +1,20 @@
+diff --git a/src/app.py b/src/app.py
+index 1234567..abcdefg 100644
+--- a/src/app.py
++++ b/src/app.py
+@@ -1,5 +1,6 @@
+ """Simple web application for testing security review skills."""
+
++import subprocess
+ import os
+ import sqlite3
+
+@@ -25,3 +26,8 @@ def list_files(directory: str) -> list[str]:
+
+ def health_check() -> dict:
+     return {"status": "ok"}
++
++
++def run_command(user_input: str) -> str:
++    result = subprocess.run(user_input, shell=True, capture_output=True, text=True)
++    return result.stdout

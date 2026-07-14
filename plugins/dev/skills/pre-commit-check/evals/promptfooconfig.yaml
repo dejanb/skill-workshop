@@ -1,0 +1,51 @@
+description: 'Pre-commit check skill eval'
+providers:
+  - id: anthropic:claude-agent-sdk
+    config:
+      working_dir: ../../../../../fixtures/consumer
+      append_allowed_tools: ['Bash', 'Read']
+tests:
+  # --- Trigger tests ---
+
+  # Positive — exact match
+  - vars:
+      prompt: 'Run pre-commit checks before I commit'
+    assert:
+      - type: skill-used
+        value: pre-commit-check
+
+  # Positive — natural phrasing
+  - vars:
+      prompt: 'Lint and test this before committing'
+    assert:
+      - type: skill-used
+        value: pre-commit-check
+
+  # Near-miss — security review, not pre-commit
+  - vars:
+      prompt: 'Check this code for security vulnerabilities'
+    assert:
+      - type: not-skill-used
+        value: pre-commit-check
+
+  # Negative — unrelated
+  - vars:
+      prompt: 'Explain how this function works'
+    assert:
+      - type: not-skill-used
+        value: pre-commit-check
+
+  # --- Trajectory test ---
+
+  # Should attempt to run lint and test commands
+  - vars:
+      prompt: 'Run pre-commit checks'
+    assert:
+      - type: trajectory
+        value:
+          - toolName: Bash
+            pattern: 'lint|eslint|ruff|black'
+      - type: trajectory
+        value:
+          - toolName: Bash
+            pattern: 'test|pytest|jest'

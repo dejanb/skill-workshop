@@ -1,0 +1,16 @@
+description: 'Pre-commit check skill eval'
+providers:
+  - id: anthropic:claude-agent-sdk
+    config:
+      working_dir: ../fixtures/consumer
+      setting_sources: ['project']
+      skills: ['pre-commit-check']
+      append_allowed_tools: ['Read', 'Grep', 'Glob']
+      env:
+        CLAUDE_CODE_USE_VERTEX: '1'
+tests:
+  - vars:
+      prompt: 'Run pre-commit checks before committing'
+    assert:
+      - type: skill-used
+        value: pre-commit-check

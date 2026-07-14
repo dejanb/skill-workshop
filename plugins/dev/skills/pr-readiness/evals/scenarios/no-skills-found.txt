@@ -1,0 +1,11 @@
+Step 1 — Count commits ahead of main:
+5 commits ahead of main.
+
+Step 2 — Discover review skills:
+No review skills found in .agents/skills/.
+
+Step 3 — Run each review skill:
+Skipped — no review skills available.
+
+Step 4 — Aggregate:
+5 commits ready but no review skills configured. Recommend adding security-review and style-check skills before merging.

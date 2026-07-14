@@ -1,0 +1,33 @@
+description: 'Security review — three kinds of trigger tests'
+providers:
+  - id: anthropic:claude-agent-sdk
+    config:
+      working_dir: ../fixtures/consumer
+      setting_sources: ['project']
+      skills: ['security-review', 'style-check']
+      append_allowed_tools: ['Read', 'Grep', 'Glob']
+      env:
+        CLAUDE_CODE_USE_VERTEX: '1'
+tests:
+  # Positive — should trigger this skill
+  - vars:
+      prompt: 'Review this code for security vulnerabilities'
+    assert:
+      - type: skill-used
+        value: security-review
+
+  # Near-miss — should trigger a sibling skill, not this one
+  - vars:
+      prompt: 'Check if the code follows our naming conventions'
+    assert:
+      - type: not-skill-used
+        value: security-review
+      - type: skill-used
+        value: style-check
+
+  # Negative — completely unrelated, should trigger nothing
+  - vars:
+      prompt: 'What time is the standup meeting?'
+    assert:
+      - type: not-skill-used
+        value: security-review

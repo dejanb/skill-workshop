@@ -1,0 +1,13 @@
+{
+  "name": "skill-workshop",
+  "owner": {
+    "name": "Dejan"
+  },
+  "plugins": [
+    {
+      "name": "dev",
+      "source": "./plugins/dev",
+      "description": "Developer workflow skills — pre-commit checks, code review, testing"
+    }
+  ]
+}

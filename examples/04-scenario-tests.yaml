@@ -1,0 +1,34 @@
+description: 'PR readiness — scenario-based tests'
+providers:
+  - id: anthropic:claude-agent-sdk
+    config:
+      working_dir: ../fixtures/consumer
+      env:
+        CLAUDE_CODE_USE_VERTEX: '1'
+prompts:
+  - file://../plugins/dev/skills/pr-readiness/evals/prompt_template.txt
+tests:
+  - vars:
+      skill_content: file://../plugins/dev/skills/pr-readiness/SKILL.md
+      scenario: file://../plugins/dev/skills/pr-readiness/evals/scenarios/security-fail.txt
+    assert:
+      - type: javascript
+        value: |
+          const lower = output.toLowerCase();
+          const blocked = lower.includes('not ready') || lower.includes('status: fail') || lower.includes('status:** fail');
+          return { pass: blocked, score: blocked ? 1 : 0,
+            reason: blocked ? 'Correctly blocked PR' : 'Did not block PR' };
+      - type: icontains
+        value: 'security'
+
+  - vars:
+      skill_content: file://../plugins/dev/skills/pr-readiness/SKILL.md
+      scenario: file://../plugins/dev/skills/pr-readiness/evals/scenarios/zero-commits.txt
+    assert:
+      - type: javascript
+        value: |
+          const lower = output.toLowerCase();
+          const ok = lower.includes('no commits') ||
+                     lower.includes('nothing to review');
+          return { pass: ok, score: ok ? 1 : 0,
+            reason: ok ? 'Handled zero commits' : 'Missed edge case' };

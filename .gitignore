@@ -1,0 +1,6 @@
+node_modules/
+.promptfoo/
+*.pyc
+__pycache__/
+.ruff_cache/
+fixtures/consumer/.git/

@@ -1,0 +1,51 @@
+description: 'PR readiness skill eval — scenario-based'
+providers:
+  - id: anthropic:claude-agent-sdk
+    config:
+      working_dir: ../../../../../fixtures/consumer
+prompts:
+  - file://prompt_template.txt
+tests:
+  # All checks pass — should recommend merging
+  - vars:
+      skill_content: file://../SKILL.md
+      scenario: file://scenarios/all-pass.txt
+    assert:
+      - type: contains
+        value: 'ready'
+      - type: not-contains
+        value: 'FAIL'
+
+  # Security review fails — should block the PR
+  - vars:
+      skill_content: file://../SKILL.md
+      scenario: file://scenarios/security-fail.txt
+    assert:
+      - type: contains
+        value: 'NOT ready'
+      - type: icontains
+        value: 'security'
+
+  # Zero commits — should say nothing to review
+  - vars:
+      skill_content: file://../SKILL.md
+      scenario: file://scenarios/zero-commits.txt
+    assert:
+      - type: javascript
+        value: |
+          const lower = output.toLowerCase();
+          const mentions_nothing = lower.includes('no commits') || lower.includes('nothing to review');
+          return { pass: mentions_nothing, score: mentions_nothing ? 1 : 0,
+            reason: mentions_nothing ? 'Correctly identified no commits' : 'Did not handle zero-commit case' };
+
+  # No skills found — should warn about missing skills
+  - vars:
+      skill_content: file://../SKILL.md
+      scenario: file://scenarios/no-skills-found.txt
+    assert:
+      - type: javascript
+        value: |
+          const lower = output.toLowerCase();
+          const warns = lower.includes('no review skills') || lower.includes('no skills') || lower.includes('recommend');
+          return { pass: warns, score: warns ? 1 : 0,
+            reason: warns ? 'Warned about missing skills' : 'Did not warn about missing skills' };
