@@ -1,6 +1,6 @@
 # Skill Workshop
 
-A demo repository for the "Master Your Skills" blog series on developers.redhat.com.
+A hands-on repo for learning how to build, test, and ship AI agent skills.
 
 ## Structure
 
@@ -14,8 +14,10 @@ A demo repository for the "Master Your Skills" blog series on developers.redhat.
 ## Running evals
 
 ```bash
-cd plugins/dev/skills/security-review/evals
-npx promptfoo eval
+npx promptfoo eval -c plugins/dev/skills/pre-commit-check/evals/promptfooconfig.yaml
+npx promptfoo eval -c plugins/dev/skills/security-review/evals/trigger-tests.yaml
+npx promptfoo eval -c plugins/dev/skills/security-review/evals/execution-tests.yaml
+npx promptfoo eval -c plugins/dev/skills/pr-readiness/evals/promptfooconfig.yaml
 ```
 
 ## Conventions

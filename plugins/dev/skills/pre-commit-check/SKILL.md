@@ -5,7 +5,7 @@ description: Run project checks before committing. Use when the user asks to com
 
 ## Steps
 
-1. Run linting: `npm run lint:fix`
-2. Run the test suite: `npm test`
+1. Run linting: `ruff check --fix . && ruff format .`
+2. Run the test suite: `pytest`
 3. If either step fails, show the errors and stop — do not commit
 4. Stage the changes and create the commit following conventional commits format

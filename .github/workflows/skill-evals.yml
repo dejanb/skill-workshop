@@ -12,17 +12,18 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        skill:
-          - plugins/dev/skills/pre-commit-check/evals
-          - plugins/dev/skills/security-review/evals
-          - plugins/dev/skills/pr-readiness/evals
+        config:
+          - plugins/dev/skills/pre-commit-check/evals/promptfooconfig.yaml
+          - plugins/dev/skills/security-review/evals/trigger-tests.yaml
+          - plugins/dev/skills/security-review/evals/execution-tests.yaml
+          - plugins/dev/skills/pr-readiness/evals/promptfooconfig.yaml
     steps:
       - uses: actions/checkout@v4
 
       - name: Run evals
         uses: promptfoo/promptfoo-action@v1
         with:
-          working-directory: ${{ matrix.skill }}
+          config: ${{ matrix.config }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
