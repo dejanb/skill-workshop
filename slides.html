@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Master Your Skills: Teaching Your AI Agent How to Work</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css">
+  <style>
+    .reveal h1, .reveal h2, .reveal h3 { text-transform: none; }
+    .reveal pre { font-size: 0.48em; width: 95%; }
+    .reveal code { font-size: 0.9em; }
+    .reveal ul { font-size: 0.85em; }
+    .reveal blockquote { font-size: 0.8em; background: rgba(255,255,255,0.05); padding: 20px; border-left: 4px solid #42affa; }
+    .reveal .small { font-size: 0.65em; color: #888; }
+    .reveal .highlight-red { color: #ff6b6b; }
+    .reveal .highlight-green { color: #69db7c; }
+    .reveal .highlight-blue { color: #42affa; }
+    .reveal table { font-size: 0.75em; margin: 0 auto; }
+    .reveal table th { background: rgba(255,255,255,0.1); }
+    .reveal table td, .reveal table th { padding: 8px 16px; border: 1px solid rgba(255,255,255,0.2); }
+    .two-col { display: flex; gap: 40px; align-items: flex-start; }
+    .two-col > div { flex: 1; }
+  </style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ============ TITLE ============ -->
+<section>
+  <h1>Master Your Skills</h1>
+  <h3>Teaching Your AI Agent How to Work</h3>
+  <p class="small">Dejan Bosanac</p>
+</section>
+
+<!-- ============ 1. THE CONTEXT PROBLEM ============ -->
+<section>
+  <section>
+    <h2>The context problem</h2>
+    <p>AI agents are only as good as the context you give them</p>
+    <br>
+    <blockquote>"Improve performance, make no mistakes"</blockquote>
+    <p class="small">^ This rarely yields the desired outcome</p>
+  </section>
+
+  <section>
+    <h2>AGENTS.md</h2>
+    <p>A README for coding agents — lives at your project root</p>
+    <br>
+    <ul>
+      <li>How to install the project</li>
+      <li>What tools to use</li>
+      <li>Where the tests are</li>
+      <li>Key invariants and gotchas</li>
+    </ul>
+    <br>
+    <p>Most major agents read it natively. For Claude Code, create a <code>CLAUDE.md</code>:</p>
+    <pre><code class="language-markdown">@AGENTS.md</code></pre>
+    <p class="small">Open spec — <a href="https://agents.md">agents.md</a></p>
+  </section>
+
+  <section>
+    <h2>Start with init, then review</h2>
+    <br>
+    <p>Most agents generate a starting context file with an <code>init</code> command</p>
+    <br>
+    <ul>
+      <li><span class="highlight-green">Keep:</span> what only you know — silent invariants, gotchas, non-obvious conventions</li>
+      <li><span class="highlight-red">Remove:</span> what the agent can already figure out — standard directory structures, obvious patterns</li>
+    </ul>
+    <br>
+    <p class="small">Research from ETH Zurich: generic auto-generated context can <em>hurt</em> agent performance</p>
+  </section>
+
+  <section>
+    <h2>Use it as an index, not an encyclopedia</h2>
+    <pre><code class="language-markdown">| Topic                | Document                     |
+|----------------------|------------------------------|
+| Setup & CLI usage    | `README.md`                  |
+| System design        | `ARCHITECTURE.md`            |
+| Interface contracts  | `specs/README.md`            |
+| Coding patterns      | `docs/development/coding-patterns.md` |</code></pre>
+    <br>
+    <ul>
+      <li>Keep it under 150 lines (30–50 for small repos)</li>
+      <li>Document small invariants — things that fail silently</li>
+      <li>If the agent keeps making the same mistake, add a rule here</li>
+    </ul>
+  </section>
+</section>
+
+<!-- ============ 2. WHAT ARE SKILLS ============ -->
+<section>
+  <section>
+    <h2>What are skills?</h2>
+    <p>Task-specific instructions with structured metadata</p>
+    <br>
+    <pre><code class="language-yaml">---
+name: pre-commit-check
+description: Run project checks before committing.
+  Use when the user asks to commit changes
+  or prepare a commit.
+---
+
+## Steps
+
+1. Run linting: `ruff check --fix . && ruff format .`
+2. Run the test suite: `pytest`
+3. If either step fails, show the errors and stop
+4. Stage and commit following conventional commits</code></pre>
+    <p class="small">Open spec — <a href="https://agentskills.io">agentskills.io</a></p>
+  </section>
+
+  <section>
+    <h2>Progressive disclosure</h2>
+    <br>
+    <div class="two-col">
+      <div>
+        <h3 class="highlight-blue">Always loaded</h3>
+        <p>Name + description</p>
+        <p class="small">Agent decides relevance from this alone</p>
+      </div>
+      <div>
+        <h3 class="highlight-green">Loaded on demand</h3>
+        <p>Full SKILL.md + resources</p>
+        <p class="small">Only when the agent decides the skill is relevant</p>
+      </div>
+    </div>
+    <br>
+    <p>Keeps prompt size under control while making vast amounts of information available</p>
+  </section>
+
+  <section>
+    <h2>Skill folder structure</h2>
+    <pre><code class="language-text">skill-name/
+├── SKILL.md          # Required: metadata + instructions
+├── scripts/          # Optional: executable code
+├── references/       # Optional: documentation
+├── assets/           # Optional: templates, resources
+└── ...               # Any additional files</code></pre>
+    <br>
+    <p>Extra resources are only read when the instructions reference them</p>
+    <p>Store skills in <code>.agents/skills/</code> for maximum portability</p>
+  </section>
+
+  <section>
+    <h2>Triggering</h2>
+    <br>
+    <table>
+      <tr>
+        <th>Automatic</th>
+        <th>Explicit</th>
+      </tr>
+      <tr>
+        <td>"Let's commit this code"<br><span class="small">Agent matches intent to description</span></td>
+        <td><code>/pre-commit-check</code><br><span class="small">Direct invocation</span></td>
+      </tr>
+    </table>
+  </section>
+</section>
+
+<!-- ============ 3. SHARING SKILLS ============ -->
+<section>
+  <section>
+    <h2>Sharing skills</h2>
+    <p>From local to organization-wide</p>
+    <br>
+    <table>
+      <tr><th>Scale</th><th>Approach</th></tr>
+      <tr><td>Personal</td><td><code>.agents/skills/</code> in your repo</td></tr>
+      <tr><td>Team</td><td>Shared repo + symlinks or submodule</td></tr>
+      <tr><td>Organization</td><td>Plugin bundles + marketplace</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>Team sharing via Git</h2>
+    <br>
+    <p>Move skills to a dedicated repo, clone and symlink:</p>
+    <pre><code class="language-bash">git clone https://github.com/team/shared-skills.git ~/.shared-skills
+ln -s ~/.shared-skills/skills/* .agents/skills/</code></pre>
+    <br>
+    <p>Git handles versioning. Works well for small teams.</p>
+    <p class="small">Scales poorly as collections grow — that's where plugins come in</p>
+  </section>
+
+  <section>
+    <h2>Plugins</h2>
+    <div class="two-col">
+      <div>
+        <p class="small">Structure</p>
+        <pre><code class="language-text">plugins/dev/
+├── .claude-plugin/
+│   └── plugin.json
+└── skills/
+    ├── pre-commit-check/
+    ├── security-review/
+    └── style-check/</code></pre>
+      </div>
+      <div>
+        <p class="small">plugin.json</p>
+        <pre><code class="language-json">{
+  "name": "dev",
+  "description": "Developer workflow
+    skills",
+  "version": "1.0.0",
+  "author": {
+    "name": "Dejan"
+  }
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Marketplace</h2>
+    <p>A Git repo that catalogs plugins</p>
+    <pre><code class="language-json">{
+  "name": "skill-workshop",
+  "owner": { "name": "Dejan" },
+  "plugins": [{
+    "name": "dev",
+    "source": "./plugins/dev",
+    "description": "Developer workflow skills"
+  }]
+}</code></pre>
+    <pre><code class="language-bash">/plugin marketplace add https://github.com/dejanb/skill-workshop.git
+/plugin install dev@skill-workshop</code></pre>
+    <p>Then use: <code class="highlight-green">/dev:pre-commit-check</code></p>
+  </section>
+
+  <section>
+    <h2>The strategy</h2>
+    <br>
+    <p>Keep core skills in <code>.agents/skills/</code></p>
+    <p>Add agent-specific packaging on top</p>
+    <br>
+    <p class="highlight-blue">The skill content stays the same — only the wrapping changes</p>
+  </section>
+</section>
+
+<!-- ============ 4. AUTHORING WITH SKILL-CREATOR (EXTENDED) ============ -->
+<section class="extended">
+  <section>
+    <h2>Authoring with skill-creator</h2>
+    <p>Do the work first, formalize it second</p>
+    <br>
+    <ul>
+      <li>Part of Anthropic's <a href="https://github.com/anthropics/skills">skills</a> collection</li>
+      <li>Conversational authoring — describe what you want, it writes the SKILL.md</li>
+      <li>Built-in eval loop — generates test prompts, runs them, reports accuracy</li>
+      <li>Description optimizer — train/test split, iterates automatically</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>The eval loop</h2>
+    <br>
+    <p>Generates positive and negative prompts</p>
+    <p>Runs each one multiple times against the agent</p>
+    <p>Reports which triggered correctly and which didn't</p>
+    <br>
+    <p class="highlight-red">Limitation: evals live inside the session — not version-controlled, don't survive past authoring</p>
+  </section>
+</section>
+
+<!-- ============ 5. WHAT GOES WRONG (EXTENDED) ============ -->
+<section class="extended">
+  <section>
+    <h2>What goes wrong</h2>
+    <p class="highlight-red">Skills fail silently</p>
+  </section>
+
+  <section>
+    <h2>The silent misfire</h2>
+    <br>
+    <p>Trigger description is too vague — agent never picks up the skill</p>
+    <br>
+    <blockquote>No error. Nothing crashes. The skill just sits there.</blockquote>
+    <br>
+    <p class="small">We rewrote a SKILL.md to be "more conceptual" — it stopped triggering entirely</p>
+  </section>
+
+  <section>
+    <h2>Action verbs matter</h2>
+    <br>
+    <pre><code class="language-yaml"># Triggers ~33% of the time
+description: Security review guidelines and best
+  practices for code changes
+
+# Triggers ~83% of the time
+description: Run a security review on the current
+  code changes. Use when the user asks to check
+  security, review for vulnerabilities,
+  or run a security scan.</code></pre>
+    <br>
+    <p>First reads like docs — agent can answer without invoking the skill</p>
+    <p>Second describes an <span class="highlight-green">action</span> the agent can't perform alone</p>
+  </section>
+
+  <section>
+    <h2>The silent regression</h2>
+    <br>
+    <p>Someone "improves" the instructions</p>
+    <p>Change looks fine in code review</p>
+    <p>Capability quietly stops working</p>
+    <br>
+    <p class="highlight-red">Without tests, you find out from your users</p>
+  </section>
+
+  <section>
+    <h2>The side-effect surprise</h2>
+    <br>
+    <p>A skill that creates merge requests...</p>
+    <p>...tested in an eval run...</p>
+    <p>...created <span class="highlight-red">real MRs</span> and pushed branches</p>
+    <br>
+    <p>Running a skill in an eval is not the same as running it in a sandbox</p>
+  </section>
+</section>
+
+<!-- ============ 6. TESTING WITH PROMPTFOO ============ -->
+<section>
+  <section>
+    <h2>Testing skills</h2>
+    <p class="highlight-red">Skills fail silently</p>
+    <br>
+    <ul>
+      <li><strong>Silent misfire</strong> — description too vague, agent never picks it up</li>
+      <li><strong>Silent regression</strong> — someone "improves" the instructions, skill breaks</li>
+      <li><strong>Side-effect surprise</strong> — eval run creates real MRs, pushes branches</li>
+    </ul>
+    <br>
+    <p class="small">Unlike code, there's no exception — you find out from your users</p>
+  </section>
+
+  <section>
+    <h2>promptfoo</h2>
+    <p>YAML config → assertions → CLI</p>
+  </section>
+
+  <section>
+    <h2>Trigger test</h2>
+    <pre><code class="language-yaml">description: 'Pre-commit check skill eval'
+providers:
+  - id: anthropic:claude-agent-sdk
+    config:
+      working_dir: ./fixtures/consumer
+      setting_sources: ['project']
+      skills: ['pre-commit-check']
+tests:
+  - vars:
+      prompt: 'Run pre-commit checks before committing'
+    assert:
+      - type: skill-used
+        value: pre-commit-check</code></pre>
+    <p class="small"><code>skill-used</code> checks actual Skill tool routing, not just output text</p>
+  </section>
+
+  <section>
+    <h2>Three kinds of trigger prompts</h2>
+    <pre><code class="language-yaml">tests:
+  # Positive — should trigger
+  - vars:
+      prompt: 'Review this code for security vulnerabilities'
+    assert:
+      - type: skill-used
+        value: security-review
+
+  # Near-miss — should trigger sibling, not this one
+  - vars:
+      prompt: 'Check if the code follows our naming conventions'
+    assert:
+      - type: not-skill-used
+        value: security-review
+      - type: skill-used
+        value: style-check
+
+  # Negative — unrelated, should trigger nothing
+  - vars:
+      prompt: 'What time is the standup meeting?'
+    assert:
+      - type: not-skill-used
+        value: security-review</code></pre>
+  </section>
+
+  <section>
+    <h2>The fixture directory pattern</h2>
+    <pre><code class="language-text">fixtures/consumer/
+├── .claude/skills/
+│   ├── security-review → (symlink)
+│   └── style-check    → (symlink)
+├── .agents/skills/
+│   └── ...             (same, for other agents)
+└── src/
+    └── app.py          (test fixture code)</code></pre>
+    <br>
+    <p>Without this, the agent reads SKILL.md from the filesystem</p>
+    <p>Your tests pass for the <span class="highlight-red">wrong reason</span></p>
+  </section>
+
+  <section>
+    <h2>Demo</h2>
+    <pre><code class="language-bash">npx promptfoo eval -c examples/02-trigger-layers.yaml</code></pre>
+    <br>
+    <p class="small">Positive, near-miss, and negative — all in one run</p>
+  </section>
+</section>
+
+<!-- ============ 7. EXECUTION TESTING (EXTENDED) ============ -->
+<section class="extended">
+  <section>
+    <h2>Execution testing</h2>
+    <p>Does the skill produce correct results?</p>
+  </section>
+
+  <section>
+    <h2>Recall and precision</h2>
+    <br>
+    <div class="two-col">
+      <div>
+        <h3 class="highlight-green">Recall</h3>
+        <p>Plant a known issue</p>
+        <p>Assert the skill finds it</p>
+      </div>
+      <div>
+        <h3 class="highlight-blue">Precision</h3>
+        <p>Present safe code</p>
+        <p>Assert the skill doesn't flag it</p>
+      </div>
+    </div>
+    <br>
+    <p class="small">Precision matters more for adoption — false positives erode trust faster than missed findings</p>
+  </section>
+
+  <section>
+    <h2>Planted diff test</h2>
+    <pre><code class="language-yaml"># Recall — planted command injection
+- vars:
+    diff: file://diffs/recall-cmdinject.diff
+  assert:
+    - type: javascript
+      value: |
+        const match = output.match(/```json\s*([\s\S]*?)```/);
+        const issues = match ? JSON.parse(match[1]).issues || [] : [];
+        const found = issues.some(i =>
+          /command.inject|shell/i.test(i.description));
+        return { pass: found, score: found ? 1 : 0,
+          reason: found ? 'Detected injection' : 'Missed injection' };
+
+# Precision — safe subprocess, should not flag
+- vars:
+    diff: file://diffs/precision-subprocess-safe.diff
+  assert:
+    - type: javascript
+      value: |
+        const match = output.match(/```json\s*([\s\S]*?)```/);
+        const issues = match ? JSON.parse(match[1]).issues || [] : [];
+        return { pass: issues.length === 0, score: issues.length === 0 ? 1 : 0,
+          reason: issues.length === 0 ? 'No false positive'
+            : 'False positive: ' + issues[0].description };</code></pre>
+  </section>
+</section>
+
+<!-- ============ 8. SCENARIO TESTING (EXTENDED) ============ -->
+<section class="extended">
+  <section>
+    <h2>Scenario-based testing</h2>
+    <p>Test multi-step logic without side effects</p>
+  </section>
+
+  <section>
+    <h2>Pre-written step results</h2>
+    <pre><code class="language-text">Step 1 — Count commits ahead of main:
+2 commits ahead of main.
+
+Step 2 — Discover review skills:
+Found skills: security-review, style-check
+
+Step 3 — Run each review skill:
+security-review: FAIL — found 1 issue: command injection
+  via subprocess.run(user_input, shell=True) in src/app.py:30.
+style-check: PASS — all naming conventions followed.
+
+Step 4 — Aggregate:
+1 of 2 checks failed. PR is NOT ready for review.</code></pre>
+    <br>
+    <p class="small">The LLM doesn't know it's reading pre-written results — it processes them like real output</p>
+  </section>
+
+  <section>
+    <h2>Scenario assertions</h2>
+    <pre><code class="language-yaml">tests:
+  - vars:
+      skill_content: file://../SKILL.md
+      scenario: file://scenarios/security-fail.txt
+    assert:
+      - type: javascript
+        value: |
+          const lower = output.toLowerCase();
+          const blocked = lower.includes('not ready') ||
+                          lower.includes('status: fail');
+          return { pass: blocked, score: blocked ? 1 : 0,
+            reason: blocked ? 'Correctly blocked PR'
+                            : 'Did not block PR' };
+      - type: icontains
+        value: 'security'</code></pre>
+    <br>
+    <p>Test every branch: all pass, security fail, zero commits, no skills found</p>
+  </section>
+</section>
+
+<!-- ============ 9. CI (EXTENDED) ============ -->
+<section class="extended">
+  <section>
+    <h2>Taking it to CI</h2>
+    <p>Catch regressions before they ship</p>
+  </section>
+
+  <section>
+    <h2>GitHub Actions</h2>
+    <pre><code class="language-yaml">name: Skill Evals
+on:
+  pull_request:
+    paths:
+      - 'plugins/**/SKILL.md'
+      - 'plugins/**/evals/**'
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: promptfoo/promptfoo-action@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          config: 'plugins/dev/skills/pre-commit-check/evals/promptfooconfig.yaml'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}</code></pre>
+    <p class="small">Only runs when SKILL.md or eval files change — not on every PR</p>
+  </section>
+
+  <section>
+    <h2>Progressive rollout</h2>
+    <br>
+    <ol>
+      <li>Start informational — report results, don't block</li>
+      <li>Build confidence — team sees what tests catch</li>
+      <li>Flip to blocking gate</li>
+    </ol>
+    <br>
+    <p class="small">Cost: ~$0.10–0.15 per eval run — less than debugging a broken skill</p>
+  </section>
+</section>
+
+<!-- ============ CLOSING ============ -->
+<section>
+  <section>
+    <h2>Start here</h2>
+    <br>
+    <ol>
+      <li>Pick one skill in your project</li>
+      <li>Add one trigger test — positive + negative</li>
+      <li>Run it: <code>npx promptfoo eval</code></li>
+    </ol>
+    <br>
+    <p class="small">15 minutes of work. It will tell you more than reading the SKILL.md.</p>
+  </section>
+
+  <section>
+    <h2>Resources</h2>
+    <br>
+    <table>
+      <tr><td>Agent Skills spec</td><td><a href="https://agentskills.io">agentskills.io</a></td></tr>
+      <tr><td>AGENTS.md spec</td><td><a href="https://agents.md">agents.md</a></td></tr>
+      <tr><td>promptfoo guide</td><td><a href="https://www.promptfoo.dev/docs/guides/test-agent-skills/">promptfoo.dev/docs/guides/test-agent-skills</a></td></tr>
+      <tr><td>Companion repo</td><td><a href="https://github.com/dejanb/skill-workshop">github.com/dejanb/skill-workshop</a></td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h1>Questions?</h1>
+    <br>
+    <p class="small">github.com/dejanb/skill-workshop</p>
+  </section>
+</section>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script>
+  // Toggle this to show/hide extended sections
+  const FULL_VERSION = false;
+
+  if (!FULL_VERSION) {
+    document.querySelectorAll('section.extended').forEach(s => s.remove());
+  }
+
+  Reveal.initialize({
+    hash: true,
+    slideNumber: true,
+    plugins: [RevealHighlight]
+  });
+</script>
+</body>
+</html>
