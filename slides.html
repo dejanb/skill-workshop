@@ -168,6 +168,52 @@ description: Run project checks before committing.
       </tr>
     </table>
   </section>
+
+  <section>
+    <h2>The description is everything</h2>
+    <br>
+    <p>A skill that doesn't trigger produces <span class="highlight-red">no error</span></p>
+    <p>The agent just handles it itself — and your skill sits there unused</p>
+    <br>
+    <pre><code class="language-yaml"># ❌ Reads like documentation — agent already "knows" this
+description: Security review guidelines and best
+  practices for code changes
+
+# ✅ Describes an action the agent can't do alone
+description: Run a security review on the current
+  code changes. Use when the user asks to check
+  security or review for vulnerabilities.</code></pre>
+    <br>
+    <p class="small">Action verbs, not guide-style phrasing</p>
+  </section>
+
+  <section>
+    <h2>Instructions, not documentation</h2>
+    <br>
+    <div class="two-col">
+      <div>
+        <h3 class="highlight-red">❌ Documentation</h3>
+        <pre><code class="language-markdown">## Security Review
+
+Security reviews check
+for common vulnerabilities
+like injection, XSS, and
+hardcoded secrets.</code></pre>
+      </div>
+      <div>
+        <h3 class="highlight-green">✅ Instructions</h3>
+        <pre><code class="language-markdown">## Steps
+
+1. Read the staged diff
+2. Check for injection,
+   XSS, hardcoded secrets
+3. Output JSON with issues
+4. If clean, say "No issues"</code></pre>
+      </div>
+    </div>
+    <br>
+    <p class="small">The agent doesn't need to understand the concept — it needs to know what to <em>do</em></p>
+  </section>
 </section>
 
 <!-- ============ 3. SHARING SKILLS ============ -->
