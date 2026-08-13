@@ -462,6 +462,18 @@ tests:
     <br>
     <p class="small">Positive, near-miss, and negative — all in one run</p>
   </section>
+
+  <section>
+    <h2>Start here</h2>
+    <br>
+    <ol>
+      <li>Pick one skill in your project</li>
+      <li>Add one trigger test — positive + negative</li>
+      <li>Run it: <code>npx promptfoo eval</code></li>
+    </ol>
+    <br>
+    <p class="small">15 minutes of work. It will tell you more than reading the SKILL.md.</p>
+  </section>
 </section>
 
 <!-- ============ 7. EXECUTION TESTING (EXTENDED) ============ -->
@@ -614,34 +626,14 @@ jobs:
 
 <!-- ============ CLOSING ============ -->
 <section>
-  <section>
-    <h2>Start here</h2>
-    <br>
-    <ol>
-      <li>Pick one skill in your project</li>
-      <li>Add one trigger test — positive + negative</li>
-      <li>Run it: <code>npx promptfoo eval</code></li>
-    </ol>
-    <br>
-    <p class="small">15 minutes of work. It will tell you more than reading the SKILL.md.</p>
-  </section>
-
-  <section>
-    <h2>Resources</h2>
-    <br>
-    <table>
-      <tr><td>Agent Skills spec</td><td><a href="https://agentskills.io">agentskills.io</a></td></tr>
-      <tr><td>AGENTS.md spec</td><td><a href="https://agents.md">agents.md</a></td></tr>
-      <tr><td>promptfoo guide</td><td><a href="https://www.promptfoo.dev/docs/guides/test-agent-skills/">promptfoo.dev/docs/guides/test-agent-skills</a></td></tr>
-      <tr><td>Companion repo</td><td><a href="https://github.com/dejanb/skill-workshop">github.com/dejanb/skill-workshop</a></td></tr>
-    </table>
-  </section>
-
-  <section>
-    <h1>Questions?</h1>
-    <br>
-    <p class="small">github.com/dejanb/skill-workshop</p>
-  </section>
+  <h1>Questions?</h1>
+  <br>
+  <table>
+    <tr><td>Agent Skills spec</td><td><a href="https://agentskills.io">agentskills.io</a></td></tr>
+    <tr><td>AGENTS.md spec</td><td><a href="https://agents.md">agents.md</a></td></tr>
+    <tr><td>promptfoo guide</td><td><a href="https://www.promptfoo.dev/docs/guides/test-agent-skills/">promptfoo.dev/docs/guides/test-agent-skills</a></td></tr>
+    <tr><td>Companion repo</td><td><a href="https://github.com/dejanb/skill-workshop">github.com/dejanb/skill-workshop</a></td></tr>
+  </table>
 </section>
 
 </div>
@@ -651,7 +643,7 @@ jobs:
 <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
 <script>
   // Toggle this to show/hide extended sections
-  const FULL_VERSION = false;
+  const FULL_VERSION = true;
 
   if (!FULL_VERSION) {
     document.querySelectorAll('section.extended').forEach(s => s.remove());
