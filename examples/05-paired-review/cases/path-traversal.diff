@@ -1,0 +1,29 @@
+diff --git a/src/cli.py b/src/cli.py
+new file mode 100644
+index 0000000..bbbbbbb
+--- /dev/null
++++ b/src/cli.py
+@@ -0,0 +1,9 @@
++import argparse
++from src.report import write_report
++
++parser = argparse.ArgumentParser()
++parser.add_argument("--name", required=True)
++args = parser.parse_args()
++
++# --name comes from the command line; no validation occurs here.
++write_report(args.name, "quarterly results")
+diff --git a/src/report.py b/src/report.py
+new file mode 100644
+index 0000000..ddddddd
+--- /dev/null
++++ b/src/report.py
+@@ -0,0 +1,8 @@
++from pathlib import Path
++
++
++def write_report(name: str, content: str) -> None:
++    output_dir = Path("reports")
++    output_dir.mkdir(exist_ok=True)
++    target = output_dir / name
++    target.write_text(content)

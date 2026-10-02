@@ -26,7 +26,8 @@ Four skills in `plugins/dev/skills/`:
 
 ### Runnable Examples
 
-Promptfoo eval configs in `examples/`, covering different testing patterns:
+Promptfoo eval configs and reproducible exercises in `examples/`, covering
+different testing patterns:
 
 | File | What it tests |
 |------|---------------|
@@ -34,6 +35,8 @@ Promptfoo eval configs in `examples/`, covering different testing patterns:
 | `02-trigger-layers.yaml` | Positive, near-miss, and negative triggers |
 | `03-execution-tests.yaml` | Recall and precision with planted diffs |
 | `04-scenario-tests.yaml` | Scenario-based orchestration testing |
+| [`05-paired-review/`](examples/05-paired-review/) | Same security-review tasks with and without the skill, scored against known findings |
+| [`06-git-workflow/`](examples/06-git-workflow/) | Disposable Git repos for checking the outcome of an action-taking skill |
 
 Run any example:
 
@@ -41,19 +44,28 @@ Run any example:
 npx promptfoo eval -c examples/01-first-trigger.yaml
 ```
 
+Examples 05 and 06 have setup steps and verification commands in their own
+READMEs. Example 05 runs two real-agent providers and requires authentication;
+example 06 creates local Git repositories for a manual agent exercise.
+
 ### Eval Fixtures
 
 - `fixtures/consumer/` — A minimal project the agent runs against during evals, with skills symlinked into `.claude/skills/`
 - `plugins/dev/skills/security-review/evals/diffs/` — Planted diffs for recall/precision tests
 - `plugins/dev/skills/pr-readiness/evals/scenarios/` — Pre-written step results for scenario-based tests
+- `fixtures/part3-review/` — Generated, ignored paired workspaces for example 05
 
 ## Authentication
 
-The example configs use Vertex AI by default (`CLAUDE_CODE_USE_VERTEX`). To use the Anthropic API directly instead, remove the `env` block from the example YAML files and set:
+Examples 01–04 use Vertex AI by default (`CLAUDE_CODE_USE_VERTEX`). To use the
+Anthropic API directly, remove the `env` block from those YAML files and set:
 
 ```bash
 export ANTHROPIC_API_KEY=your_key_here
 ```
+
+Example 05 has no provider-specific `env` block, so it uses the Claude SDK's
+configured authentication.
 
 ## Repo Structure
 

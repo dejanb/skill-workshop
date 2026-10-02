@@ -1,0 +1,81 @@
+description: 'Part 3 — paired review: does security-review improve the result?'
+
+prompts:
+  - '{{request}}'
+
+providers:
+  - id: anthropic:claude-agent-sdk
+    label: no-skill
+    config:
+      model: claude-sonnet-4-6
+      apiKeyRequired: false
+      working_dir: ../../fixtures/part3-review/baseline
+      setting_sources: ['project']
+      append_allowed_tools: ['Read', 'Grep', 'Glob']
+      output_format: &review-schema
+        type: json_schema
+        schema:
+          type: object
+          required: [issues]
+          additionalProperties: false
+          properties:
+            issues:
+              type: array
+              items:
+                type: object
+                required: [kind, file, line, severity, description, suggested_fix]
+                additionalProperties: false
+                properties:
+                  kind:
+                    type: string
+                    enum: [path-traversal, command-injection, other]
+                  file:
+                    type: string
+                  line:
+                    type: integer
+                  severity:
+                    type: string
+                    enum: [CRITICAL, HIGH, MEDIUM, LOW]
+                  description:
+                    type: string
+                  suggested_fix:
+                    type: string
+
+  - id: anthropic:claude-agent-sdk
+    label: security-review-skill
+    config:
+      model: claude-sonnet-4-6
+      apiKeyRequired: false
+      working_dir: ../../fixtures/part3-review/with-skill
+      setting_sources: ['project']
+      skills: ['security-review']
+      append_allowed_tools: ['Read', 'Grep', 'Glob']
+      output_format: *review-schema
+
+tests:
+  - description: 'Finds cross-file path traversal'
+    vars:
+      request: 'Review only changes/path-traversal.diff for actionable security issues. Return the JSON review.'
+      expectedKind: path-traversal
+      expectedFile: src/report.py
+    assert:
+      - type: javascript
+        value: file://score-review.js
+
+  - description: 'Finds command injection'
+    vars:
+      request: 'Review only changes/command-injection.diff for actionable security issues. Return the JSON review.'
+      expectedKind: command-injection
+      expectedFile: src/runner.py
+    assert:
+      - type: javascript
+        value: file://score-review.js
+
+  - description: 'Does not flag safe subprocess use'
+    vars:
+      request: 'Review only changes/safe-subprocess.diff for actionable security issues. Return the JSON review.'
+      expectedKind: none
+      expectedFile: none
+    assert:
+      - type: javascript
+        value: file://score-review.js

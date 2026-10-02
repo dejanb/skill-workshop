@@ -1,0 +1,15 @@
+diff --git a/src/runner.py b/src/runner.py
+new file mode 100644
+index 0000000..bbbbbbb
+--- /dev/null
++++ b/src/runner.py
+@@ -0,0 +1,9 @@
++import subprocess
++
++
++def run_user_command(user_input: str) -> str:
++    """Run a command received from an HTTP request body."""
++    result = subprocess.run(
++        user_input, shell=True, capture_output=True, text=True, check=True
++    )
++    return result.stdout
