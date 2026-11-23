@@ -22,6 +22,17 @@
     .reveal table td, .reveal table th { padding: 8px 16px; border: 1px solid rgba(255,255,255,0.2); }
     .two-col { display: flex; gap: 40px; align-items: flex-start; }
     .two-col > div { flex: 1; }
+    .reveal .eval-case .two-col { gap: 32px; text-align: left; }
+    .reveal .eval-case .two-col > div { min-width: 0; }
+    .reveal .eval-case h3 { font-size: 1em; }
+    .reveal .eval-case .eval-body { font-size: 0.85em; }
+    .reveal .eval-case li { margin-bottom: 0.4em; }
+    .reveal .eval-case pre { box-sizing: border-box; }
+    .reveal .eval-case .two-col pre { width: 100%; }
+    .reveal .eval-case pre code { max-height: none; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .reveal .eval-case .eval-evidence { font-size: 0.58em; }
+    .reveal .eval-case table { font-size: 0.64em; text-align: left; }
+    .reveal .eval-case table th, .reveal .eval-case table td { padding: 10px 14px; }
   </style>
 </head>
 <body>
@@ -488,112 +499,9 @@ tests:
   </section>
 </section>
 
-<!-- ============ 7. EXECUTION TESTING (EXTENDED) ============ -->
-<section class="extended">
-  <section>
-    <h2>Execution testing</h2>
-    <p>Does the skill produce correct results?</p>
-  </section>
-
-  <section>
-    <h2>Recall and precision</h2>
-    <br>
-    <div class="two-col">
-      <div>
-        <h3 class="highlight-green">Recall</h3>
-        <p>Plant a known issue</p>
-        <p>Assert the skill finds it</p>
-      </div>
-      <div>
-        <h3 class="highlight-blue">Precision</h3>
-        <p>Present safe code</p>
-        <p>Assert the skill doesn't flag it</p>
-      </div>
-    </div>
-    <br>
-    <p class="small">Precision matters more for adoption — false positives erode trust faster than missed findings</p>
-  </section>
-
-  <section>
-    <h2>Planted diff test</h2>
-    <pre><code class="language-yaml"># Recall — planted command injection
-- vars:
-    diff: file://diffs/recall-cmdinject.diff
-  assert:
-    - type: javascript
-      value: |
-        const match = output.match(/```json\s*([\s\S]*?)```/);
-        const issues = match ? JSON.parse(match[1]).issues || [] : [];
-        const found = issues.some(i =>
-          /command.inject|shell/i.test(i.description));
-        return { pass: found, score: found ? 1 : 0,
-          reason: found ? 'Detected injection' : 'Missed injection' };
-
-# Precision — safe subprocess, should not flag
-- vars:
-    diff: file://diffs/precision-subprocess-safe.diff
-  assert:
-    - type: javascript
-      value: |
-        const match = output.match(/```json\s*([\s\S]*?)```/);
-        const issues = match ? JSON.parse(match[1]).issues || [] : [];
-        return { pass: issues.length === 0, score: issues.length === 0 ? 1 : 0,
-          reason: issues.length === 0 ? 'No false positive'
-            : 'False positive: ' + issues[0].description };</code></pre>
-  </section>
-</section>
-
-<!-- ============ 8. SCENARIO TESTING (EXTENDED) ============ -->
-<section class="extended">
-  <section>
-    <h2>Scenario-based testing</h2>
-    <p>Test multi-step logic without side effects</p>
-  </section>
-
-  <section>
-    <h2>Pre-written step results</h2>
-    <pre><code class="language-text">Step 1 — Count commits ahead of main:
-2 commits ahead of main.
-
-Step 2 — Discover review skills:
-Found skills: security-review, style-check
-
-Step 3 — Run each review skill:
-security-review: FAIL — found 1 issue: command injection
-  via subprocess.run(user_input, shell=True) in src/app.py:30.
-style-check: PASS — all naming conventions followed.
-
-Step 4 — Aggregate:
-1 of 2 checks failed. PR is NOT ready for review.</code></pre>
-    <br>
-    <p class="small">The LLM doesn't know it's reading pre-written results — it processes them like real output</p>
-  </section>
-
-  <section>
-    <h2>Scenario assertions</h2>
-    <pre><code class="language-yaml">tests:
-  - vars:
-      skill_content: file://../SKILL.md
-      scenario: file://scenarios/security-fail.txt
-    assert:
-      - type: javascript
-        value: |
-          const lower = output.toLowerCase();
-          const blocked = lower.includes('not ready') ||
-                          lower.includes('status: fail');
-          return { pass: blocked, score: blocked ? 1 : 0,
-            reason: blocked ? 'Correctly blocked PR'
-                            : 'Did not block PR' };
-      - type: icontains
-        value: 'security'</code></pre>
-    <br>
-    <p>Test every branch: all pass, security fail, zero commits, no skills found</p>
-  </section>
-</section>
-
-<!-- ============ 9. CI (EXTENDED) ============ -->
-<section class="extended">
-  <section>
+<!-- ============ CI ============ -->
+<section id="ci">
+  <section id="ci-overview">
     <h2>Taking it to CI</h2>
     <p>Catch regressions before they ship</p>
   </section>
@@ -632,7 +540,727 @@ jobs:
       <li>Flip to blocking gate</li>
     </ol>
     <br>
-    <p class="small">Cost: ~$0.10–0.15 per eval run — less than debugging a broken skill</p>
+    <p class="small">Track run cost and judge cost alongside pass rates.</p>
+  </section>
+</section>
+
+<!-- ============ PROMPTFOO EVALUATION TECHNIQUES ============ -->
+<section id="promptfoo-techniques">
+  <section id="promptfoo-anatomy" class="eval-case">
+    <h2>Anatomy of a Promptfoo eval</h2>
+    <table>
+      <thead><tr><th>Configuration</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>providers</code></td><td>What runs: a model, an agent, or your application</td></tr>
+        <tr><td><code>prompts</code> + <code>tests.vars</code></td><td>The task and its input cases</td></tr>
+        <tr><td><code>tests.assert</code></td><td>The checks that decide whether each result passes</td></tr>
+      </tbody>
+    </table>
+    <p class="eval-body">Choose the execution environment and the grading method separately.</p>
+    <p class="small">One agent run can have JSON, code, and model-graded assertions.</p>
+    <aside class="notes">
+      <p>So far we checked whether a skill was selected and put that check in CI. Now broaden the assertions. The provider runs the system under test; an assertion grades evidence from that run. JSON is an output format. An agent is an execution environment. An LLM judge is a grading method. These choices can be combined in one eval.</p>
+      <p>Sources: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/">Promptfoo assertions</a>, <a href="https://www.promptfoo.dev/docs/providers/claude-agent-sdk/">Claude Agent SDK provider</a>.</p>
+    </aside>
+  </section>
+
+  <section id="promptfoo-exact-checks" class="eval-case">
+    <h2>Exact checks</h2>
+    <table>
+      <thead><tr><th>Assertion</th><th>Useful for</th></tr></thead>
+      <tbody>
+        <tr><td><code>equals</code></td><td>An exact status or classification</td></tr>
+        <tr><td><code>contains</code> / <code>not-contains</code></td><td>Required or forbidden literal text</td></tr>
+        <tr><td><code>regex</code> / <code>not-regex</code></td><td>A heading or other text pattern</td></tr>
+      </tbody>
+    </table>
+    <pre><code class="language-yaml"># Check a heading, allowing the words elsewhere in the report
+assert:
+  - type: not-regex
+    value: '(^|\n)### \*\*Root Cause\*\*(\r?\n|$)'</code></pre>
+    <p class="eval-body">Make the check as precise as the rule it protects.</p>
+    <aside class="notes">
+      <p>A skipped optional section gives us a concrete example. Forbidding the words Root Cause everywhere would also reject a valid note explaining what was skipped. This expression checks the actual Markdown heading. Exact checks are repeatable and require no judge-model call; choosing the right condition still takes judgment.</p>
+      <p>Source: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/deterministic/">Promptfoo deterministic assertions</a>.</p>
+    </aside>
+  </section>
+
+  <section id="promptfoo-json" class="eval-case">
+    <h2>JSON and schema validation</h2>
+    <div class="two-col">
+      <div>
+        <pre><code class="language-yaml">assert:
+  - type: is-json
+    value:
+      type: object
+      required: [summary, labels]
+      properties:
+        summary:
+          type: string
+        labels:
+          type: array
+          items:
+            type: string</code></pre>
+      </div>
+      <div>
+        <h3>Output matching this schema</h3>
+        <pre><code class="language-json">{
+  "summary": "SBOM pages repeat entries",
+  "labels": ["reported-by-ai"]
+}</code></pre>
+        <p class="eval-body">The required label is<br><code>ai-generated-jira</code>.</p>
+        <p class="eval-body">The shape passes.<br>The label still needs a check.</p>
+      </div>
+    </div>
+    <p class="small"><code>is-json</code>: whole output. <code>contains-json</code>: JSON within other text.</p>
+    <aside class="notes">
+      <p>The schema checks required fields and their types. It intentionally accepts any string in labels, so the wrong label can pass. A schema can also enforce an enum or const; the next slide uses code to show how domain rules can be expressed separately. A provider's structured-output setting constrains generation, while this assertion checks the returned result.</p>
+      <p>Source: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/deterministic/#is-json">Promptfoo JSON assertions and schemas</a>.</p>
+    </aside>
+  </section>
+
+  <section id="promptfoo-code" class="eval-case">
+    <h2>JavaScript assertions</h2>
+    <pre><code class="language-yaml">assert:
+  - type: javascript
+    value: |
+      try {
+        const report = typeof output === 'string'
+          ? JSON.parse(output) : output;
+        const pass = Array.isArray(report?.labels) &amp;&amp;
+          report.labels.includes('ai-generated-jira');
+        return { pass, score: pass ? 1 : 0,
+          reason: pass ? 'Required label present'
+                       : 'Required label missing' };
+      } catch {
+        return { pass: false, score: 0, reason: 'Invalid JSON' };
+      }</code></pre>
+    <p class="eval-body">Use code for exact fields, counts, and relationships.</p>
+    <p class="small">Python assertions are also supported. Larger graders can live in <code>file://</code> scripts.</p>
+    <aside class="notes">
+      <p>The wrong label from the previous slide now fails. Parsing errors fail too, instead of becoming an empty result that accidentally passes. Returning a reason makes a failed assertion easier to investigate. Code can enforce a known contract, but this check alone says nothing about whether the report preserves the user's facts.</p>
+      <p>Source: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/javascript/">Promptfoo JavaScript assertions</a>.</p>
+    </aside>
+  </section>
+
+  <section id="promptfoo-agents" class="eval-case">
+    <h2>Evaluating an agent</h2>
+    <pre><code class="language-yaml">providers:
+  - id: anthropic:claude-agent-sdk
+    config:
+      working_dir: ./fixtures/consumer
+      setting_sources: ['project']
+      skills: ['security-review']
+prompts:
+  - 'Review src/app.py for security vulnerabilities'
+tests:
+  - assert:
+      - type: skill-used
+        value: security-review</code></pre>
+    <p class="eval-body">A model call produces an answer.<br>An agent run can discover skills and use tools.</p>
+    <p class="small">Invocation metadata establishes selection. Add checks for findings or changed state.</p>
+    <aside class="notes">
+      <p>This provider runs a real coding-agent loop in a fixture project. The skills list makes the named discovered skill available; the natural prompt still leaves the invocation decision to the agent. Promptfoo checks normalized invocation metadata. That proves selection, while an outcome assertion must establish whether the findings are correct. For state-changing tasks, inspect resulting files or Git state and reset the environment between runs.</p>
+      <p>Source: <a href="https://www.promptfoo.dev/docs/providers/claude-agent-sdk/#testing-skill-invocation">Promptfoo agent provider and skill invocation</a>.</p>
+    </aside>
+  </section>
+
+  <section id="promptfoo-llm-judge" class="eval-case">
+    <h2>LLM as a judge</h2>
+    <pre><code class="language-yaml"># Assertion excerpt; source_facts is a test variable
+assert:
+  - type: llm-rubric
+    provider: openai:gpt-5-mini
+    value: |
+      Source facts: {{source_facts}}
+      Pass only if the report preserves the supplied
+      reproduction steps, observed result, and environment.
+      Fail if it invents a root cause or a proposed fix.
+      Cite the relevant output text in your reason.</code></pre>
+    <p class="eval-body">Useful when correct wording can vary.</p>
+    <p class="eval-body">Calibrate the rubric against human-labeled good and bad outputs.</p>
+    <p class="small">The grading model is configured separately from the system under test.</p>
+    <aside class="notes">
+      <p>The judge compares the report with source facts supplied through the rubric. This lets it evaluate meaning when several phrasings would be acceptable. Define concrete pass and fail conditions, inspect its evidence, and check agreement with human judgments. Pin the judge configuration for comparisons. Model grading adds cost and can vary, so retain exact code checks for exact rules.</p>
+      <p>Source: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/model-graded/llm-rubric/">Promptfoo LLM rubric, test variables, and grading-provider overrides</a>.</p>
+    </aside>
+  </section>
+
+  <section id="promptfoo-agent-judge" class="eval-case">
+    <h2>Agent as a judge</h2>
+    <pre><code class="language-yaml">assert:
+  - type: agent-rubric
+    provider:
+      id: anthropic:claude-agent-sdk
+      config:
+        working_dir: ./fixtures/report-output
+    value: |
+      Read source-facts.md and outputs/preview.md.
+      Verify that the preview preserves the source facts.
+      Fail on invented reproduction steps or environment.
+      Cite file evidence for the verdict.</code></pre>
+    <p class="eval-body">The judge gathers evidence from files using tools.</p>
+    <p class="small">Give it the matching run's artifacts and read-only access.</p>
+    <aside class="notes">
+      <p>Here the agent is the grader. The target could be another agent, a model, or an application. Unlike the preceding text-only rubric, this grader needs tools and a workspace containing the evidence. The fixture path is illustrative: stage source-facts.md and the generated preview there for the run being graded. Promptfoo's Claude agent provider defaults to read-only tools. Use code for checks that are already exact and reserve this judge for artifact inspection requiring interpretation.</p>
+      <p>Source: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/model-graded/agent-rubric/">Promptfoo agent rubric and supported grading providers</a>.</p>
+    </aside>
+  </section>
+
+  <section id="promptfoo-evidence" class="eval-case">
+    <h2>Matching checks to evidence</h2>
+    <table>
+      <thead><tr><th>Question</th><th>Evidence and check</th></tr></thead>
+      <tbody>
+        <tr><td>Is the output well formed?</td><td>JSON schema</td></tr>
+        <tr><td>Are exact values correct?</td><td>Parsed fields + code assertions</td></tr>
+        <tr><td>Was the skill invoked?</td><td>Invocation metadata + <code>skill-used</code></td></tr>
+        <tr><td>Were the source facts preserved?</td><td>Reference facts + calibrated LLM rubric</td></tr>
+        <tr><td>Do artifacts support the claim?</td><td>Files or state + code checks / agent judge</td></tr>
+      </tbody>
+    </table>
+    <p class="eval-body">Combine checks for one case, then compare repeated runs.</p>
+    <p class="small">To measure improvement, keep the task and environment fixed and compare with / without the skill.</p>
+    <aside class="notes">
+      <p>Each row answers a different question. A schema pass can coexist with a factual error, and skill invocation can coexist with an incorrect outcome. Use independent reference facts and known outputs to validate the graders themselves. Repeated trials reveal variability; a small perfect run is still only a smoke check. Next we will use Promptfoo to compare models and agents, then introduce execution-testing concepts before the final case study.</p>
+      <p>Sources: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/">Promptfoo assertion types</a>, <a href="https://www.promptfoo.dev/docs/usage/command-line/">Promptfoo repeated eval runs</a>. The combined evidence checklist is guidance for this workshop.</p>
+    </aside>
+  </section>
+</section>
+
+<!-- ============ COMPARING MODELS AND AGENTS WITH PROMPTFOO ============ -->
+<section id="comparing-models-agents">
+  <section id="comparison-basics" class="eval-case">
+    <h2>Comparing models in Promptfoo</h2>
+    <pre><code class="language-yaml">providers:
+  - openai:chat:gpt-5.4
+  - anthropic:messages:claude-sonnet-5
+prompts:
+  - 'Classify as billing or technical. Return only the label: {{text}}'
+tests:
+  - vars:
+      text: 'The application crashes on startup.'
+    assert:
+      - type: equals
+        value: technical</code></pre>
+    <p class="eval-body">Promptfoo runs the same prompt and tests against each provider.</p>
+    <p class="small">Minimal example. Expand the case set before drawing conclusions.</p>
+    <aside class="notes">
+      <p>Save this as promptfooconfig.yaml and configure authentication for both model APIs. Adding a provider adds another configuration to compare against the shared test set. This small classification task illustrates the mechanism; it is not a benchmark or a claim about either model. Keep grading and task inputs fixed while changing providers.</p>
+      <p>Source: <a href="https://www.promptfoo.dev/docs/guides/gpt-vs-claude-vs-gemini/">Promptfoo, comparing model providers on shared tasks</a>.</p>
+    </aside>
+  </section>
+
+  <section id="comparison-design" class="eval-case">
+    <h2>Comparing agents in Promptfoo</h2>
+    <pre><code class="language-yaml">providers:
+  - id: anthropic:claude-agent-sdk
+    label: claude-defaults
+    config:
+      working_dir: ./fixtures/consumer
+  - id: openai:codex-sdk
+    label: codex-defaults
+    config:
+      working_dir: ./fixtures/consumer
+      sandbox_mode: read-only
+      approval_policy: never</code></pre>
+    <p class="eval-body">Each provider runs an agent against the same fixture project.</p>
+    <p class="small">This compares complete setups, including their configured models and tools.</p>
+    <aside class="notes">
+      <p>This is the provider portion of a second config. Save it at the workshop root so the fixture path resolves correctly, then append the shared task from the next slide. Install and authenticate the corresponding agent SDKs. Claude's provider gives read-only tools when working_dir is set; Codex is explicitly configured read-only. These defaults can use different models, so the result describes the complete configurations. To compare model choices within one agent, repeat that agent provider with different config.model values.</p>
+      <p>Sources: <a href="https://www.promptfoo.dev/docs/providers/claude-agent-sdk/">Promptfoo Claude Agent SDK provider</a>, <a href="https://www.promptfoo.dev/docs/providers/openai-codex-sdk/">Promptfoo Codex SDK provider</a>.</p>
+    </aside>
+  </section>
+
+  <section id="comparison-promptfoo" class="eval-case">
+    <h2>Shared tests for agent runs</h2>
+    <pre><code class="language-yaml"># Append to the agent provider configuration
+prompts:
+  - &gt;
+    Read src/app.py. Which database module is imported?
+    Return only the module name.
+tests:
+  - assert:
+      - type: equals
+        value: sqlite3</code></pre>
+    <p class="eval-body">Both agents receive the same task and success criterion.</p>
+    <p class="small">The fixture supplies the evidence. The assertion supplies the expected answer.</p>
+    <aside class="notes">
+      <p>The workshop fixture imports sqlite3 in src/app.py, giving this introductory task a checkable answer. This assertion checks the final answer; it does not prove that the agent read the file. Add trace checks when tool use is part of the requirement. The same provider pattern can reuse richer outcome checks or supported skill-invocation assertions from earlier slides. This agent comparison is a separate exercise from the direct-model classification example.</p>
+      <p>Sources: <code>fixtures/consumer/src/app.py</code>, <a href="https://www.promptfoo.dev/docs/guides/evaluate-coding-agents/">Promptfoo shared tasks and agent evidence</a>.</p>
+    </aside>
+  </section>
+
+  <section id="comparison-results" class="eval-case">
+    <h2>Run and compare</h2>
+    <pre><code class="language-bash"># Run the chosen promptfooconfig.yaml
+npx promptfoo eval --repeat 3 --no-cache
+npx promptfoo view</code></pre>
+    <table>
+      <thead><tr><th>In the comparison</th><th>Look for</th></tr></thead>
+      <tbody>
+        <tr><td>Results by provider</td><td>Which cases pass, and why others fail</td></tr>
+        <tr><td>Repeated attempts</td><td>Whether results vary between runs</td></tr>
+        <tr><td>Usage and timing</td><td>Latency and reported token usage or cost</td></tr>
+      </tbody>
+    </table>
+    <p class="small">Cost reporting depends on the provider. Three repeats are a smoke check.</p>
+    <aside class="notes">
+      <p>Run either the complete model config or the combined agent config, each saved as promptfooconfig.yaml. The viewer lets us inspect outputs and assertions by provider. Repeats should execute fresh calls, and state-changing tests also need fresh environments. Pin model and runtime versions, use representative cases, and keep grading fixed for meaningful comparisons. Provider metadata determines which usage and cost fields are available. No results from these illustrative comparisons are claimed here.</p>
+      <p>Sources: <a href="https://www.promptfoo.dev/docs/usage/command-line/">Promptfoo eval, repeat, cache, and viewer commands</a>, <a href="https://www.promptfoo.dev/docs/guides/gpt-vs-claude-vs-gemini/">Promptfoo comparison results</a>.</p>
+    </aside>
+  </section>
+</section>
+
+<!-- ============ EXECUTION TESTING CONCEPTS ============ -->
+<section id="execution-testing" class="extended">
+  <section id="execution-basics" class="eval-case">
+    <h2>Execution testing</h2>
+    <p>Does the agent carry out the task correctly?</p>
+    <br>
+    <p class="eval-body">Give it a defined situation.<br>Observe its behavior and check the result.</p>
+    <aside class="notes">
+      <p>Trigger testing asks whether the agent selects a skill. Execution testing asks what happens when it uses the skill. The result might be an answer, a generated artifact, or a change in an external system. We first need a few concepts for setting up these tests.</p>
+      <p>Source: <a href="https://www.anthropic.com/research/demystifying-evals-for-ai-agents">Anthropic, task definitions and outcomes in agent evals</a>.</p>
+    </aside>
+  </section>
+
+  <section id="execution-scenarios" class="eval-case">
+    <h2>Scenarios</h2>
+    <p>A repeatable situation we want to test</p>
+    <br>
+    <ul>
+      <li>A task and the information available at the start</li>
+      <li>Conditions the agent encounters</li>
+      <li>Expected behavior or an acceptable result</li>
+    </ul>
+    <br>
+    <p class="small">Example: required information is missing. Should the agent ask for it?</p>
+    <aside class="notes">
+      <p>A scenario is a test case: a task, its context, and criteria for success. We can create scenarios for a normal request, incomplete input, or a dependency failure. Repeating a scenario helps us compare behavior. The expected result belongs to the evaluation; giving the agent the answer would weaken the test.</p>
+    </aside>
+  </section>
+
+  <section id="execution-mocks" class="eval-case">
+    <h2>Mocks</h2>
+    <p>Controlled replacements for tools or services</p>
+    <br>
+    <ul>
+      <li>Return a chosen response when the agent makes a call</li>
+      <li>Make success and failure conditions repeatable</li>
+      <li>Record calls so we can check how a dependency was used</li>
+    </ul>
+    <br>
+    <p class="small">Example: an API returns a timeout. How does the agent respond?</p>
+    <aside class="notes">
+      <p>A test double stands in for a real dependency. A stub supplies a response; a mock can also check interactions. Here we use mocks as the broad introductory term for controlled tool or service replacements. The agent still chooses whether and how to call the tool. These tests tell us about its response to the simulated behavior; testing the real integration is a separate step.</p>
+    </aside>
+  </section>
+
+  <section id="execution-sandbox" class="eval-case">
+    <h2>Sandboxes</h2>
+    <p>Isolated environments for running actions</p>
+    <br>
+    <ul>
+      <li>Allow real tools to operate on test data</li>
+      <li>Enforce limits on what execution can access or change</li>
+      <li>Start each run from a known state</li>
+    </ul>
+    <br>
+    <p class="small">Example: create and edit files inside a disposable test environment.</p>
+    <aside class="notes">
+      <p>The sandbox provides an execution boundary. Its configuration determines file, process, and network access. Resetting test state supports repeatability; isolation controls side effects. A temporary folder alone does not enforce a sandbox. Real tools and mocked services can both be used within the same isolated environment.</p>
+      <p>Related guidance: <a href="https://www.promptfoo.dev/docs/providers/claude-agent-sdk/#managing-side-effects">Promptfoo, managing side effects and isolated workspaces</a>.</p>
+    </aside>
+  </section>
+
+  <section id="execution-together" class="eval-case">
+    <h2>Using them together</h2>
+    <table>
+      <thead><tr><th>Concept</th><th>What it defines</th></tr></thead>
+      <tbody>
+        <tr><td>Scenario</td><td>The situation and expected behavior</td></tr>
+        <tr><td>Mock</td><td>How a simulated dependency responds</td></tr>
+        <tr><td>Sandbox</td><td>The boundary for running actions</td></tr>
+      </tbody>
+    </table>
+    <br>
+    <p class="eval-body">Run a scenario using real tools, mocks, or a mixture.<br>Check the behavior and the result.</p>
+    <aside class="notes">
+      <p>These concepts work together. The scenario describes the test. Mocks let us control selected dependencies. A sandbox bounds real execution. We can choose the combination needed for the behavior being tested, then use the assertion techniques discussed earlier to evaluate it. Detailed workflow setup and verification can follow once these terms are clear.</p>
+    </aside>
+  </section>
+</section>
+
+<!-- Detailed execution material retained for a later section; inert in this deck. -->
+<template id="execution-details-draft">
+<!-- ============ EXECUTION TESTING FROM FIRST PRINCIPLES ============ -->
+<section id="execution-detail-testing" class="extended">
+  <section id="execution-detail-basics" class="eval-case">
+    <h2>Execution testing</h2>
+    <p>Given a task and a starting state,<br>does the agent produce an acceptable result?</p>
+    <br>
+    <ul>
+      <li>A review produces findings we can check</li>
+      <li>A commit workflow changes repository state</li>
+      <li>Some cases should end with no action or a question</li>
+    </ul>
+    <p class="small">Define success before choosing the runner or grader.</p>
+    <aside class="notes">
+      <p>Assume the skill has been invoked; selection already has its own tests. Execution testing asks whether its behavior satisfies the task. Success can be an artifact, a state change, or an appropriate stop. The agent's final message is only one piece of evidence.</p>
+      <p>Source: <a href="https://www.anthropic.com/research/demystifying-evals-for-ai-agents">Anthropic, task definitions and outcomes in agent evals</a>.</p>
+    </aside>
+  </section>
+
+  <section id="execution-detail-contract" class="eval-case">
+    <h2>The task contract</h2>
+    <p class="eval-body">User request: “Commit the staged change.”</p>
+    <table>
+      <thead><tr><th>Part of the contract</th><th>Our example</th></tr></thead>
+      <tbody>
+        <tr><td>Starting state</td><td>A staged code change and an unrelated unstaged note</td></tr>
+        <tr><td>When checks pass</td><td>One commit containing the intended change</td></tr>
+        <tr><td>When a check fails</td><td>No commit; explain the failure</td></tr>
+        <tr><td>In every case</td><td>Preserve the note and the user's work</td></tr>
+      </tbody>
+    </table>
+    <p class="small">Make the allowed scope clear to the agent. Keep the answer key with the grader.</p>
+    <aside class="notes">
+      <p>The pre-commit skill requires checks before committing and a stop on failure. The user request limits the commit to the staged change. The fixture adds an unrelated note to make preservation observable. These are requirements the agent can know; the grader's expected result must not be supplied as the answer in the test input.</p>
+      <p>Sources: <code>plugins/dev/skills/pre-commit-check/SKILL.md</code>, <code>examples/06-git-workflow/README.md</code>.</p>
+    </aside>
+  </section>
+
+  <section id="execution-detail-scenarios" class="eval-case">
+    <h2>Scenarios and sandboxes</h2>
+    <div class="two-col">
+      <div>
+        <h3 class="highlight-blue">Scenario: the situation</h3>
+        <p class="eval-body">Task, starting files, configuration,<br>and available tool responses</p>
+        <p class="eval-body">Example: tests fail while a code change is staged.</p>
+      </div>
+      <div>
+        <h3 class="highlight-green">Sandbox: the boundary</h3>
+        <p class="eval-body">Enforced limits on files, processes,<br>network access, and credentials</p>
+        <p class="eval-body">Example: writes stay inside an isolated test environment.</p>
+      </div>
+    </div>
+    <br>
+    <p class="eval-body">The same scenario can run with simulated tools or real tools in a sandbox.</p>
+    <aside class="notes">
+      <p>A scenario describes what the agent encounters. A sandbox constrains what execution can affect. A temporary folder helps reset state but does not enforce those limits. Instructions such as “do not push” also need enforcement if preventing a push is part of the test setup. This distinction is the organizing model for this workshop.</p>
+      <p>Related guidance: <a href="https://www.promptfoo.dev/docs/providers/claude-agent-sdk/#managing-side-effects">Promptfoo, managing side effects</a>.</p>
+    </aside>
+  </section>
+
+  <section id="execution-detail-environments" class="eval-case">
+    <h2>Ways to exercise a workflow</h2>
+    <table>
+      <thead><tr><th>Setup</th><th>What it can establish</th><th>What it leaves open</th></tr></thead>
+      <tbody>
+        <tr><td>Observations in the prompt</td><td>A decision from supplied results</td><td>Actual tool use</td></tr>
+        <tr><td>Stubbed tools</td><td>Calls and reactions to chosen responses</td><td>Real command or API behavior</td></tr>
+        <tr><td>Disposable local project</td><td>Real commands and resulting files or Git state</td><td>External service integration</td></tr>
+        <tr><td>Isolated service test instance</td><td>API contracts and persisted service state</td><td>Production conditions</td></tr>
+      </tbody>
+    </table>
+    <p class="eval-body">Choose the smallest setup that can expose the failure you care about.</p>
+    <aside class="notes">
+      <p>These setups test different claims. The workshop's example 04 supplies observations; example 06 uses real disposable Git repositories. Stubbed tools and service test instances are recommended extensions, not implemented workshop exercises. A local project may itself run inside a sandbox. More realistic integration tests add coverage, setup effort, and sources of variability.</p>
+      <p>Sources: <code>examples/04-scenario-tests.yaml</code>, <code>examples/06-git-workflow/README.md</code>. The comparison is workshop guidance.</p>
+    </aside>
+  </section>
+
+  <section id="execution-detail-coverage" class="eval-case">
+    <h2>Building scenarios</h2>
+    <table>
+      <thead><tr><th>Change one condition</th><th>Expected behavior to check</th></tr></thead>
+      <tbody>
+        <tr><td>All checks pass</td><td>Commit the intended staged change</td></tr>
+        <tr><td>A check fails</td><td>Stop and preserve the staged work</td></tr>
+        <tr><td>A required tool is missing</td><td>Report the blocker; avoid claiming success</td></tr>
+        <tr><td>The index is empty</td><td>No empty commit or unrelated staging</td></tr>
+        <tr><td>Unrelated files are dirty</td><td>Leave them out of the commit</td></tr>
+        <tr><td>A write times out after taking effect</td><td>Inspect state before retrying; avoid duplicates</td></tr>
+      </tbody>
+    </table>
+    <p class="small">A scenario includes fixtures and expected behavior, not just a differently worded prompt.</p>
+    <aside class="notes">
+      <p>Start with the normal path and the stop conditions. Then add boundary cases, partial failure, and recovery. A missing executable is an intentional scenario only when the fixture says so; an accidental missing dependency is an infrastructure error to investigate. The final row generalizes to external writes such as issue creation. If a workflow requires approval, also test denied or absent approval and assert that no write occurs. The current Git exercise implements the first two branches plus unrelated-file preservation; the other rows are proposed coverage.</p>
+    </aside>
+  </section>
+
+  <section id="execution-detail-stubs" class="eval-case">
+    <h2>Controlled tool responses</h2>
+    <p class="eval-body">An illustrative stubbed command runner</p>
+    <table>
+      <thead><tr><th>Agent's tool request</th><th>Response supplied by the harness</th></tr></thead>
+      <tbody>
+        <tr><td><code>ruff check --fix .</code></td><td>Exit 0</td></tr>
+        <tr><td><code>ruff format .</code></td><td>Exit 0</td></tr>
+        <tr><td><code>pytest</code></td><td>Exit 1; one test fails</td></tr>
+      </tbody>
+    </table>
+    <p class="eval-body">Record requested calls and assert that<br>no commit is attempted after the failure.</p>
+    <p class="small">The agent must choose the calls. The harness supplies controlled results.</p>
+    <aside class="notes">
+      <p>Unlike observations pasted into a prompt, tool stubs exercise the decision to call a tool and the reaction to its response. The harness must intercept execution, handle unmatched calls, and understand combined commands if the agent uses them. A failure fixture should apply to every allowed way of running the check. Check the meaningful rule—no commit after failure—rather than requiring one exact sequence of harmless inspection commands. This is a proposed harness design, not runnable Promptfoo configuration or an existing stub implementation.</p>
+      <p>Contract source: <code>plugins/dev/skills/pre-commit-check/SKILL.md</code>.</p>
+    </aside>
+  </section>
+
+  <section id="execution-detail-sandbox" class="eval-case">
+    <h2>Sandbox boundaries</h2>
+    <ul>
+      <li>Use a fresh filesystem and test state for every trial</li>
+      <li>Grant the file and process access the task needs</li>
+      <li>Restrict network destinations and service credentials</li>
+      <li>Bound runtime, retries, and model spend</li>
+    </ul>
+    <br>
+    <p class="eval-body">A workspace copy resets files.<br>Runtime or OS controls enforce the boundary.</p>
+    <aside class="notes">
+      <p>Resettable state and isolation have separate jobs. Copies prevent one trial from inheriting another trial's changes; process and network controls limit side effects. For our local commit exercise, real Git writes are needed but no remote is configured. A container still needs appropriate mounts, network rules, and credentials. Promptfoo's copy_working_dir option provides a fresh copy for a call; it is not a complete security boundary.</p>
+      <p>Source: <a href="https://www.promptfoo.dev/docs/providers/claude-agent-sdk/#managing-side-effects">Promptfoo workspace isolation and side-effect management</a>. Boundary recommendations are workshop guidance.</p>
+    </aside>
+  </section>
+
+  <section id="execution-detail-evidence" class="eval-case">
+    <h2>Traces and final state</h2>
+    <div class="two-col">
+      <div>
+        <h3 class="highlight-blue">Trace: what happened</h3>
+        <ul>
+          <li>Checks attempted and their exit status</li>
+          <li>Commit attempts and arguments</li>
+          <li>Relevant order, retries, and failures</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="highlight-green">State: what remains</h3>
+        <ul>
+          <li>Commit count and committed diff</li>
+          <li>Index and working tree</li>
+          <li>Unrelated note preserved</li>
+        </ul>
+      </div>
+    </div>
+    <p class="eval-body">A successful task needs the required outcome<br>and any required process guarantees.</p>
+    <aside class="notes">
+      <p>Inspect state independently of the final message. A commit alone does not establish that checks ran, and a tool request alone does not establish that it succeeded. Our verifier checks Git state and a test-execution marker. The marker is a teaching aid; inspect tool results to confirm execution, exit status, and action order. Keep acceptance checks outside files the agent can rewrite, and use known good and bad outcomes to validate the verifier.</p>
+      <p>Sources: <code>examples/06-git-workflow/verify.py</code>, <a href="https://www.promptfoo.dev/docs/guides/evaluate-coding-agents/">Promptfoo coding-agent traces and file verification</a>.</p>
+    </aside>
+  </section>
+
+  <section id="execution-detail-findings" class="eval-case">
+    <h2>Testing findings</h2>
+    <table>
+      <thead><tr><th>Fixture</th><th>What to check</th></tr></thead>
+      <tbody>
+        <tr><td>A known vulnerability</td><td>The finding identifies the issue and its location</td></tr>
+        <tr><td>A safe near-miss</td><td>No invented vulnerability</td></tr>
+        <tr><td>A mix of safe and vulnerable code</td><td>Expected findings without extra speculative ones</td></tr>
+      </tbody>
+    </table>
+    <p class="eval-body">Recall tracks missed known findings.<br>Precision tracks the correctness of reported findings.</p>
+    <p class="small">Match against an independent answer key. Invalid output must fail.</p>
+    <aside class="notes">
+      <p>Execution does not always change state. A review's findings are its outcome. The paired review exercise includes command injection, path traversal, and a safe subprocess case. Its scorer matches issue kind and file and rejects extra findings. This is a deliberately small teaching set, not a broad quality estimate. Do not convert a parse failure into an empty findings array: that could falsely pass a clean-code case. A judge or human can assess explanation and fix quality beyond the exact matcher.</p>
+      <p>Sources: <code>examples/05-paired-review/README.md</code>, <code>examples/05-paired-review/score-review.js</code>.</p>
+    </aside>
+  </section>
+
+  <section id="execution-detail-robustness" class="eval-case">
+    <h2>Regression and robustness</h2>
+    <table>
+      <thead><tr><th>Technique</th><th>A useful case</th></tr></thead>
+      <tbody>
+        <tr><td>Regression from a real failure</td><td>Recreate a commit that included an unrelated file</td></tr>
+        <tr><td>Meaning-preserving variations</td><td>Rename a fixture file or rephrase the same request</td></tr>
+        <tr><td>Fault injection and recovery</td><td>A tool errors or times out; a retry must avoid duplicate writes</td></tr>
+        <tr><td>Grader checks</td><td>Accept known good results and reject known wrong ones</td></tr>
+      </tbody>
+    </table>
+    <p class="small">For a variation, update fixtures and expectations consistently while preserving the task's meaning.</p>
+    <aside class="notes">
+      <p>These are recommendations for growing the suite. Meaning-preserving, or metamorphic, tests check whether irrelevant changes alter the verdict; for example, adding a harmless unrelated file should not make the agent commit it. Fault injection probes recovery, including idempotence: repeating an operation should not create unintended duplicates. Keep a held-out set that is not repeatedly used to tune the skill. Real failure cases also make useful regression tests after a fix.</p>
+      <p>Related reading: <a href="https://www.anthropic.com/research/demystifying-evals-for-ai-agents">Anthropic on regression suites and validating graders</a>. Specific test designs are workshop recommendations.</p>
+    </aside>
+  </section>
+
+  <section id="execution-detail-workshop" class="eval-case">
+    <h2>A small execution suite</h2>
+    <pre><code class="language-bash">python3 examples/06-git-workflow/prepare.py --case pass
+python3 examples/06-git-workflow/prepare.py --case fail</code></pre>
+    <p class="eval-body">In each printed repository: “Commit the staged change.”</p>
+    <pre><code class="language-bash"># After the agent runs; replace the root with the printed path
+python3 examples/06-git-workflow/verify.py \
+  --case pass --root /tmp/skill-workshop-pass-XXXX</code></pre>
+    <p class="eval-body">Compare with and without the skill under the same settings.<br>Repeat each condition from a fresh starting state.</p>
+    <p class="small">Record per-case success, failure reasons, cost, and latency. A few repeats are a smoke check.</p>
+    <aside class="notes">
+      <p>Each prepare command creates baseline and with-skill repositories with matching starting state. Install the required checks first, run the same model and harness in both, and inspect the tool trace. Use the fail root and --case fail for the second verifier run. The verifier evaluates the actual repositories after the agent acts. Keep budgets and settings fixed, exclude personal skill configuration from the baseline, and avoid cached responses when measuring repeated execution. Separate setup failures from agent behavior. These commands prepare and verify an exercise; they do not themselves run an agent.</p>
+      <p>This natural-prompt exercise measures selection together with execution. For a focused execution eval, explicitly invoke the target skill and assess its behavior separately from trigger accuracy.</p>
+      <p>Source: <code>examples/06-git-workflow/README.md</code>.</p>
+    </aside>
+  </section>
+</section>
+
+</template>
+
+<!-- ============ REPORT-BUG EXECUTION EVAL CASE STUDY ============ -->
+<section id="report-bug-evals">
+  <section id="report-bug-contract" class="eval-case">
+    <h2>Evaluating report-bug</h2>
+    <p class="eval-body">Does the invoked skill follow the bug-report contract?</p>
+    <ol class="eval-body">
+      <li>Read the project configuration and bug template</li>
+      <li>Compose the report from supplied facts</li>
+      <li>Omit optional sections the user skips</li>
+      <li>Preview for approval, then create the Jira issue</li>
+    </ol>
+    <p class="small">RHEcosystemAppEng/sdlc-plugins</p>
+    <p class="small">Eval mode writes the preview and proposed Jira calls to files.</p>
+    <aside class="notes">
+      <p>We have introduced scenarios, mocks, and sandboxes. Now look at a concrete evaluation of report-bug and ask whether it follows its instructions. This is a useful example because the contract is concrete and we can inspect the result without understanding a new application.</p>
+      <p>The skill reads project configuration and a bug template, collects supplied facts, and composes a Jira bug. It must preserve the user's content, omit skipped optional sections, and obtain approval before creating the issue. Production output goes to Jira. The eval prompt changes that behavior: it requests a preview file and files describing the proposed create and comment calls, and forbids actual Jira or MCP calls.</p>
+      <p>That gives us inspectable artifacts. It also defines the boundary of this example: the files let us evaluate composition and proposed parameters. We will return to what they cannot prove. These are recorded repository artifacts, not a fresh run.</p>
+      <p>Sources: <a href="https://github.com/RHEcosystemAppEng/sdlc-plugins/blob/3903a70384d095e54b4709e33c92d1658a5a69b5/plugins/sdlc-workflow/skills/report-bug/SKILL.md">report-bug/SKILL.md</a>, <a href="https://github.com/RHEcosystemAppEng/sdlc-plugins/blob/3903a70384d095e54b4709e33c92d1658a5a69b5/evals/report-bug/evals.json">evals/report-bug/evals.json</a>. Source checkout: 3903a70384d095e54b4709e33c92d1658a5a69b5.</p>
+    </aside>
+  </section>
+
+  <section id="report-bug-skipped" class="eval-case">
+    <h2>Case 2: skipped sections</h2>
+    <p class="eval-body">Search results pagination returns duplicate entries</p>
+    <div class="two-col">
+      <div>
+        <h3 class="highlight-blue">Input fixture</h3>
+        <pre><code class="language-markdown">## Root Cause
+
+SKIP
+
+## Suggested Fix
+
+SKIP</code></pre>
+      </div>
+      <div>
+        <h3 class="highlight-green">Expected behavior</h3>
+        <ul>
+          <li>Include all six required headings</li>
+          <li>Omit both optional headings</li>
+          <li>Keep the required Jira label and issue type</li>
+        </ul>
+      </div>
+    </div>
+    <p class="small">The fixture also supplies reproduction steps, results, and environment.</p>
+    <aside class="notes">
+      <p>Case 2 reports duplicate entries across pages in an SBOM list. The fixture supplies the required facts, including steps using at least 50 SBOMs and the RHTPA 1.3.0 environment on OpenShift 4.15. Root Cause and Suggested Fix each contain SKIP. The excerpt on the slide is exact.</p>
+      <p>The desired behavior is narrow: include the six required template headings and omit the two optional headings. The skill should not leave empty sections or invent a diagnosis. This makes a useful first execution eval because we can explain the input and expected behavior in under a minute.</p>
+      <p>Notice that the assertion concerns a heading. The output may still mention the words Root Cause in a note explaining which sections it skipped. A broad forbidden-string check would reject that valid output. We need the check to express the intended rule precisely. Next, look at how the repository packages this case.</p>
+      <p>Sources: <a href="https://github.com/RHEcosystemAppEng/sdlc-plugins/blob/3903a70384d095e54b4709e33c92d1658a5a69b5/evals/report-bug/files/user-input-interactive-partial.md">user-input-interactive-partial.md</a>, <a href="https://github.com/RHEcosystemAppEng/sdlc-plugins/blob/3903a70384d095e54b4709e33c92d1658a5a69b5/evals/report-bug/files/bug-template.md">bug-template.md</a>, <a href="https://github.com/RHEcosystemAppEng/sdlc-plugins/blob/3903a70384d095e54b4709e33c92d1658a5a69b5/evals/report-bug/evals.json">evals.json, case 2</a>. The case prompt says five required sections in one sentence. The template and assertions enumerate six, which this presentation follows.</p>
+    </aside>
+  </section>
+
+  <section id="report-bug-anatomy" class="eval-case">
+    <h2>Anatomy of an eval</h2>
+    <pre><code class="language-json">{
+  "id": 2,
+  "prompt": "Create a Jira Bug using the report-bug skill ...",
+  "files": [
+    "files/claude-md-configured.md",
+    "files/bug-template.md",
+    "files/user-input-interactive-partial.md"
+  ],
+  "assertions": [
+    "outputs/preview.md contains the heading '### **Attachments**'",
+    "outputs/preview.md does NOT contain the heading '### **Root Cause**'"
+  ]
+}</code></pre>
+    <p class="small">Case 2 excerpt. Prompt shortened. Two of ten assertions shown.</p>
+    <p class="eval-body">The runner invokes the skill explicitly in a fresh subagent.</p>
+    <aside class="notes">
+      <p>An eval case combines a task prompt, input fixtures, and assertions about observable results. Here the configuration fixture supplies project TC and Bug type ID 10300. The template defines the section headings. The partial-input fixture supplies the user's report and the two SKIP choices.</p>
+      <p>The prompt also tells the agent to write preview.md, jira-create.md, and jira-comment.md under outputs instead of contacting Jira. The slide shortens that prompt and shows two of the ten assertions. The assertion strings themselves are exact. The expected_output field and the other assertions are omitted from this display.</p>
+      <p>The runner gives each execution a fresh subagent and explicitly requests the target Skill tool invocation. A separate model grades the resulting files. This tests the behavior of an invoked skill. Automatic skill selection needs its own trigger tests. Also, fresh context and instructions against external calls do not themselves enforce a sandbox. Next we can inspect an output and its grading evidence.</p>
+      <p>Sources: <a href="https://github.com/RHEcosystemAppEng/sdlc-plugins/blob/3903a70384d095e54b4709e33c92d1658a5a69b5/evals/report-bug/evals.json">evals.json, case 2</a>, <a href="https://github.com/RHEcosystemAppEng/sdlc-plugins/blob/3903a70384d095e54b4709e33c92d1658a5a69b5/plugins/sdlc-workflow/skills/run-evals/SKILL.md">run-evals/SKILL.md, execution and grading instructions</a>.</p>
+    </aside>
+  </section>
+
+  <section id="report-bug-evidence" class="eval-case">
+    <h2>Output and grading evidence</h2>
+    <div class="two-col">
+      <div>
+        <h3>preview.md headings</h3>
+        <pre><code class="language-markdown">### **Issue Description**
+### **Steps to Reproduce**
+### **Expected Result**
+### **Actual Result**
+### **Environment / Version**
+### **Attachments**</code></pre>
+      </div>
+      <div>
+        <h3 class="highlight-green">PASS</h3>
+        <p class="eval-body">Evidence in grading.json</p>
+        <pre class="eval-evidence"><code class="language-text">preview.md line 33:
+'### **Attachments**'</code></pre>
+        <p class="eval-body">The grader also confirms both optional headings are absent.</p>
+      </div>
+    </div>
+    <p class="eval-body">A separate LLM grader returns binary verdicts with evidence.</p>
+    <p class="small">Stored baseline dada325a, case 2: 10/10 assertions passed.</p>
+    <aside class="notes">
+      <p>The left side shows the six heading lines from the actual preview, with the report body removed for space. The right side reproduces one evidence string from grading.json, split over two lines for display. That assertion passed because the output contains the required Attachments heading.</p>
+      <p>The grader also passed the two omission checks. Its evidence explicitly distinguishes a section heading from the plain-text skipped-sections note. All ten assertions passed in this stored case. The runner asks a separate LLM grader to read every output file, use binary verdicts, cite concrete evidence, and fail on contradictory evidence.</p>
+      <p>Those rules make a verdict easier to audit, but we should still inspect the evidence. Heading presence is straightforward to check in code. A model is more useful for questions such as whether rephrasing preserves the user's facts. This repository currently uses the model grader for these assertions. The next slide shows a recorded failure that such a precise check caught.</p>
+      <p>Sources: <a href="https://github.com/RHEcosystemAppEng/sdlc-plugins/blob/3903a70384d095e54b4709e33c92d1658a5a69b5/evals/report-bug/baselines/dada325a/eval-2/outputs/preview.md">dada325a/eval-2/outputs/preview.md</a>, <a href="https://github.com/RHEcosystemAppEng/sdlc-plugins/blob/3903a70384d095e54b4709e33c92d1658a5a69b5/evals/report-bug/baselines/dada325a/eval-2/grading.json">dada325a/eval-2/grading.json</a>, <a href="https://github.com/RHEcosystemAppEng/sdlc-plugins/blob/3903a70384d095e54b4709e33c92d1658a5a69b5/plugins/sdlc-workflow/skills/run-evals/SKILL.md">run-evals grading rules</a>. dada325a identifies the stored baseline directory.</p>
+    </aside>
+  </section>
+
+  <section id="report-bug-failure" class="eval-case">
+    <h2>A recorded label failure</h2>
+    <div class="two-col">
+      <div>
+        <h3 class="highlight-green">Required label</h3>
+        <pre><code class="language-json">["ai-generated-jira"]</code></pre>
+      </div>
+      <div>
+        <h3 class="highlight-red">Actual label</h3>
+        <pre><code class="language-json">["reported-by-ai"]</code></pre>
+      </div>
+    </div>
+    <p class="eval-body"><span class="highlight-red">FAIL</span> on the label assertion. Case 1 passed 13/14 checks.</p>
+    <pre class="eval-evidence"><code class="language-text">jira-create.md line 56:
+- **Labels**: `["reported-by-ai"]`</code></pre>
+    <p class="eval-body">A plausible report can still violate the metadata contract.</p>
+    <p class="small">Stored baseline 2bbadc8e, case 1. This is a historical result.</p>
+    <aside class="notes">
+      <p>This is a different stored run and a different case: the complete interactive bug report in baseline 2bbadc8e. The report passed thirteen of fourteen assertions. The failing check required the label ai-generated-jira. The proposed Jira parameters instead contained reported-by-ai, as the output excerpt shows.</p>
+      <p>Both labels sound reasonable to a person skimming the report. Only one satisfies this skill's contract. That distinction matters wherever downstream filters or automation depend on an exact value. The assertion makes the requirement explicit, and the evidence points directly to the incorrect field.</p>
+      <p>We can say this stored eval detected a concrete contract violation. Comparing this snapshot with a later passing snapshot does not establish which change caused an improvement, and we have not reproduced the failure today. For the audience, ask which other exact metadata values their own skills must preserve. That leads naturally to deciding what a passing suite actually establishes.</p>
+      <p>Sources: <a href="https://github.com/RHEcosystemAppEng/sdlc-plugins/blob/3903a70384d095e54b4709e33c92d1658a5a69b5/evals/report-bug/baselines/2bbadc8e/eval-1/outputs/jira-create.md">2bbadc8e/eval-1/outputs/jira-create.md, line 56</a>, <a href="https://github.com/RHEcosystemAppEng/sdlc-plugins/blob/3903a70384d095e54b4709e33c92d1658a5a69b5/evals/report-bug/baselines/2bbadc8e/eval-1/grading.json">2bbadc8e/eval-1/grading.json</a>. The displayed label arrays and output excerpt preserve the recorded values. The verdict sentence summarizes the stored result.</p>
+    </aside>
+  </section>
+
+  <section id="report-bug-coverage" class="eval-case">
+    <h2>What a pass establishes</h2>
+    <p class="eval-body"><span class="highlight-green">51/51 assertions</span> passed across five selected cases.</p>
+    <table>
+      <thead><tr><th>Checked here</th><th>Needs another eval</th></tr></thead>
+      <tbody>
+        <tr><td>Required headings and omissions</td><td>Preservation of every source fact</td></tr>
+        <tr><td>Proposed Jira parameters</td><td>Real API behavior and approval order</td></tr>
+        <tr><td>Explicit skill invocation</td><td>Automatic skill selection</td></tr>
+        <tr><td>Five selected scenarios</td><td>Repeated runs and broader inputs</td></tr>
+      </tbody>
+    </table>
+    <p class="eval-body">Proposed next step: code checks for headings and labels,<br>plus a judge rubric for factual fidelity.</p>
+    <p class="small">Stored baseline dada325a. One execution per case.</p>
+    <aside class="notes">
+      <p>The latest stored report-bug baseline in this checkout passes all 51 assertions across five cases: complete input, skipped optional sections, missing configuration, programmatic input, and adversarial input. That is useful coverage, but the number has a specific denominator: assertions in selected cases.</p>
+      <p>Most checks inspect structure or proposed metadata. They do not comprehensively verify preservation of source facts. Files describing Jira calls do not demonstrate a successful real API interaction. A preview file does not prove that approval preceded creation. Explicit invocation does not test automatic selection, and one recorded execution per case does not establish repeated-run reliability. The baseline is a stored result, not a comparison against an agent without the skill.</p>
+      <p>My proposed extension keeps this example small: use code for exact headings and labels, then add a judge rubric for factual fidelity. A useful audience discussion is which missing behavior deserves the next case. Approval sequencing would require a tool trace or controlled integration test with a simulated approval exchange.</p>
+      <p>Sources: <a href="https://github.com/RHEcosystemAppEng/sdlc-plugins/blob/3903a70384d095e54b4709e33c92d1658a5a69b5/evals/report-bug/evals.json">five cases and 51 assertions</a>, <a href="https://github.com/RHEcosystemAppEng/sdlc-plugins/tree/3903a70384d095e54b4709e33c92d1658a5a69b5/evals/report-bug/baselines/dada325a">stored baseline dada325a</a>, <a href="https://github.com/RHEcosystemAppEng/sdlc-plugins/blob/3903a70384d095e54b4709e33c92d1658a5a69b5/plugins/sdlc-workflow/skills/run-evals/SKILL.md">execution and grading workflow</a>. The code checks and factual-fidelity rubric are proposals, not claims about the upstream implementation.</p>
+    </aside>
   </section>
 </section>
 
@@ -653,9 +1281,10 @@ jobs:
 
 <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
 <script>
   // Toggle this to show/hide extended sections
-  const FULL_VERSION = false;
+  const FULL_VERSION = true;
 
   if (!FULL_VERSION) {
     document.querySelectorAll('section.extended').forEach(s => s.remove());
@@ -664,7 +1293,7 @@ jobs:
   Reveal.initialize({
     hash: true,
     slideNumber: true,
-    plugins: [RevealHighlight]
+    plugins: [RevealHighlight, RevealNotes]
   });
 </script>
 </body>

@@ -34,7 +34,7 @@ different testing patterns:
 | `01-first-trigger.yaml` | Single trigger test — does the skill activate? |
 | `02-trigger-layers.yaml` | Positive, near-miss, and negative triggers |
 | `03-execution-tests.yaml` | Recall and precision with planted diffs |
-| `04-scenario-tests.yaml` | Scenario-based orchestration testing |
+| `04-scenario-tests.yaml` | PR readiness decisions from pre-collected observations |
 | [`05-paired-review/`](examples/05-paired-review/) | Same security-review tasks with and without the skill, scored against known findings |
 | [`06-git-workflow/`](examples/06-git-workflow/) | Disposable Git repos for checking the outcome of an action-taking skill |
 
@@ -44,6 +44,11 @@ Run any example:
 npx promptfoo eval -c examples/01-first-trigger.yaml
 ```
 
+Example 04 supplies the PR-readiness skill text and pre-collected observations
+directly in the prompt. It tests the decision and summary, not skill discovery
+or actual command execution. The expected overall verdict stays in the
+assertions rather than in the scenario files.
+
 Examples 05 and 06 have setup steps and verification commands in their own
 READMEs. Example 05 runs two real-agent providers and requires authentication;
 example 06 creates local Git repositories for a manual agent exercise.
@@ -52,7 +57,7 @@ example 06 creates local Git repositories for a manual agent exercise.
 
 - `fixtures/consumer/` — A minimal project the agent runs against during evals, with skills symlinked into `.claude/skills/`
 - `plugins/dev/skills/security-review/evals/diffs/` — Planted diffs for recall/precision tests
-- `plugins/dev/skills/pr-readiness/evals/scenarios/` — Pre-written step results for scenario-based tests
+- `plugins/dev/skills/pr-readiness/evals/scenarios/` — Pre-collected observations for decision tests
 - `fixtures/part3-review/` — Generated, ignored paired workspaces for example 05
 
 ## Authentication

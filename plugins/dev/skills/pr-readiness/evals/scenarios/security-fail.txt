@@ -1,12 +1,9 @@
-Step 1 — Count commits ahead of main:
-2 commits ahead of main.
+git rev-list --count origin/main..HEAD: 2
 
-Step 2 — Discover review skills:
-Found skills: security-review, style-check
+Available review skills: security-review, style-check
 
-Step 3 — Run each review skill:
-security-review: FAIL — found 1 issue: command injection via subprocess.run(user_input, shell=True) in src/app.py:30.
-style-check: PASS — all naming conventions followed.
+Review results:
+security-review: FAIL — one command-injection finding at src/app.py:30, where request input reaches subprocess.run(user_input, shell=True)
+style-check: PASS — naming conventions followed
 
-Step 4 — Aggregate:
-1 of 2 checks failed. PR is NOT ready for review. Fix security issues first.
+AGENTS.md: no "## PR Checklist" section

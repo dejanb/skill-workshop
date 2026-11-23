@@ -21,9 +21,9 @@ def verify_repo(repo: Path, case: str) -> dict[str, object]:
     checks["unrelated_file_preserved"] = (repo / "notes.txt").read_text() == (
         "Private notes\nUnrelated draft\n"
     )
-    checks["unrelated_file_not_staged"] = "notes.txt" not in git(
-        repo, "diff", "--cached", "--name-only"
-    ).splitlines()
+    checks["unrelated_file_not_staged"] = (
+        "notes.txt" not in git(repo, "diff", "--cached", "--name-only").splitlines()
+    )
     test_marker = repo / ".eval" / "pytest-ran"
     checks["test_was_run"] = (
         test_marker.is_file() and test_marker.read_text() == "yes\n"
@@ -35,9 +35,7 @@ def verify_repo(repo: Path, case: str) -> dict[str, object]:
         changed_files = git(
             repo, "diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"
         ).splitlines()
-        checks["only_intended_file_committed"] = changed_files == [
-            "src/calculator.py"
-        ]
+        checks["only_intended_file_committed"] = changed_files == ["src/calculator.py"]
         checks["correct_code_committed"] = "return left + right" in git(
             repo, "show", "HEAD:src/calculator.py"
         )

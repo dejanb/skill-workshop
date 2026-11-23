@@ -1,12 +1,9 @@
-Step 1 — Count commits ahead of main:
-3 commits ahead of main.
+git rev-list --count origin/main..HEAD: 3
 
-Step 2 — Discover review skills:
-Found skills: security-review, style-check
+Available review skills: security-review, style-check
 
-Step 3 — Run each review skill:
-security-review: PASS — no issues found.
-style-check: PASS — all naming conventions followed.
+Review results:
+security-review: PASS — no issues found
+style-check: PASS — naming conventions followed
 
-Step 4 — Aggregate:
-All checks passed. PR is ready for review.
+AGENTS.md: no "## PR Checklist" section

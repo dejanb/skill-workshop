@@ -1,4 +1,4 @@
-You are testing a PR readiness skill.
+You are testing the decision logic of a PR readiness skill.
 
 The skill instructions are:
 
@@ -6,8 +6,10 @@ The skill instructions are:
 
 =====
 
-Instead of executing commands, use the following pre-collected results for each step:
+Instead of executing commands, use these pre-collected observations:
 
 {{scenario}}
 
-Based on the skill instructions and these results, produce the final PR readiness summary exactly as the skill describes.
+Based on the skill instructions and these observations, decide what to report.
+Do not claim to have run commands. An absent later-step result does not mean
+that step was run; the workflow may have stopped earlier.

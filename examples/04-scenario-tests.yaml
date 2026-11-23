@@ -1,4 +1,4 @@
-description: 'PR readiness — scenario-based tests'
+description: 'PR readiness — decisions from pre-collected observations'
 providers:
   - id: anthropic:claude-agent-sdk
     config:

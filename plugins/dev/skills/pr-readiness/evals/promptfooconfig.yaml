@@ -1,4 +1,4 @@
-description: 'PR readiness skill eval — scenario-based'
+description: 'PR readiness skill eval — decisions from pre-collected observations'
 providers:
   - id: anthropic:claude-agent-sdk
     config:
