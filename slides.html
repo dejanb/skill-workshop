@@ -1,25 +1,33 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Master Your Skills: Teaching Your AI Agent How to Work</title>
+  <script>
+    (() => {
+      const theme = new URLSearchParams(window.location.search).get('theme');
+      document.documentElement.dataset.theme = theme === 'dark' ? 'dark' : 'light';
+    })();
+  </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css">
+  <link rel="stylesheet" href="presentation-theme.css">
   <style>
     .reveal h1, .reveal h2, .reveal h3 { text-transform: none; }
     .reveal pre { font-size: 0.48em; width: 95%; }
     .reveal code { font-size: 0.9em; }
     .reveal ul { font-size: 0.85em; }
-    .reveal blockquote { font-size: 0.8em; background: rgba(255,255,255,0.05); padding: 20px; border-left: 4px solid #42affa; }
-    .reveal .small { font-size: 0.65em; color: #888; }
-    .reveal .highlight-red { color: #ff6b6b; }
-    .reveal .highlight-green { color: #69db7c; }
-    .reveal .highlight-blue { color: #42affa; }
+    .reveal blockquote { font-size: 0.8em; background: var(--deck-surface); padding: 20px; border-left: 4px solid var(--deck-accent); }
+    .reveal .small { font-size: 0.65em; color: var(--deck-muted); }
+    .reveal .highlight-red { color: var(--deck-negative); }
+    .reveal .highlight-green { color: var(--deck-positive); }
+    .reveal .highlight-blue { color: var(--deck-neutral); }
     .reveal table { font-size: 0.75em; margin: 0 auto; }
-    .reveal table th { background: rgba(255,255,255,0.1); }
-    .reveal table td, .reveal table th { padding: 8px 16px; border: 1px solid rgba(255,255,255,0.2); }
+    .reveal table th { background: var(--deck-table-heading); }
+    .reveal table td, .reveal table th { padding: 8px 16px; border: 1px solid var(--deck-border); }
+    .reveal table tbody tr:last-child td, .reveal table tbody tr:last-child th { border-bottom: 1px solid var(--deck-border); }
     .two-col { display: flex; gap: 40px; align-items: flex-start; }
     .two-col > div { flex: 1; }
     .reveal .eval-case .two-col { gap: 32px; text-align: left; }
@@ -333,14 +341,18 @@ ln -s ~/.shared-skills/skills/* .agents/skills/</code></pre>
     </ul>
   </section>
 
-  <section>
+  <section id="skill-creator-evals">
     <h2>The eval loop</h2>
     <br>
-    <p>Generates positive and negative prompts</p>
-    <p>Runs each one multiple times against the agent</p>
-    <p>Reports which triggered correctly and which didn't</p>
+    <p>Generate test cases and define success criteria</p>
+    <p>Run tasks, grade outputs, and compare with a baseline</p>
+    <p>Use the results to refine the skill and its description</p>
     <br>
-    <p class="highlight-red">Limitation: evals live inside the session — not version-controlled, don't survive past authoring</p>
+    <p class="small">Saved eval cases and results can be reused locally or integrated into CI.</p>
+    <aside class="notes">
+      <p>Skill-creator supports saved test cases, grading artifacts, and benchmark reports. Its evaluation workflow includes output checks and baseline comparisons, alongside a separate process for optimizing trigger descriptions. Anthropic also describes integrating saved evals and results with CI systems. We use it here for authoring and improving skills, then introduce Promptfoo as a broader evaluation framework.</p>
+      <p>Sources: <a href="https://claude.com/resources/articles/improving-skill-creator-test-measure-and-refine-agent-skills">Anthropic, skill-creator evaluations and CI integration</a>, <a href="https://github.com/anthropics/skills/blob/main/skills/skill-creator/SKILL.md">Skill-creator workflow and saved artifacts</a>.</p>
+    </aside>
   </section>
 </section>
 
@@ -414,9 +426,22 @@ description: Run a security review on the current
     <p class="small">Unlike code, there's no exception — you find out from your users</p>
   </section>
 
-  <section>
+  <section id="promptfoo-overview">
     <h2>promptfoo</h2>
-    <p>YAML config → assertions → CLI</p>
+    <p>A broader toolkit for repeatable evals</p>
+    <br>
+    <ul>
+      <li>Model and agent SDK providers</li>
+      <li>Built-in assertions, custom code, and LLM judges</li>
+      <li>Shared test suites for comparing configurations</li>
+      <li>Results viewer, metrics, and CI integrations</li>
+    </ul>
+    <br>
+    <p class="small">YAML config → assertions → CLI → comparison and reporting</p>
+    <aside class="notes">
+      <p>Our reason for choosing Promptfoo is the combination of provider integrations, assertion types, shared test suites, and result analysis in one framework. CI is one part of that workflow. Other runners can also persist results and run in automation; we should compare the capabilities needed for the task. The following slides demonstrate these Promptfoo features.</p>
+      <p>Sources: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/">Promptfoo assertion types</a>, <a href="https://www.promptfoo.dev/docs/guides/evaluate-coding-agents/">Agent providers</a>, <a href="https://www.promptfoo.dev/docs/guides/gpt-vs-claude-vs-gemini/">Provider comparisons and result inspection</a>, <a href="https://www.promptfoo.dev/docs/integrations/ci-cd/">CI integrations</a>.</p>
+    </aside>
   </section>
 
   <section>
@@ -1294,6 +1319,19 @@ SKIP</code></pre>
     hash: true,
     slideNumber: true,
     plugins: [RevealHighlight, RevealNotes]
+  }).then(() => {
+    Reveal.addKeyBinding(
+      { keyCode: 84, key: 'T', description: 'Switch between light and dark themes' },
+      () => {
+        const root = document.documentElement;
+        const theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+        root.dataset.theme = theme;
+        const url = new URL(window.location.href);
+        url.searchParams.set('theme', theme);
+        window.history.replaceState(window.history.state, '', url);
+        Reveal.sync();
+      }
+    );
   });
 </script>
 </body>

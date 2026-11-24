@@ -11,6 +11,23 @@ npm install @anthropic-ai/claude-agent-sdk
 npx promptfoo eval -c examples/01-first-trigger.yaml
 ```
 
+## Presentation
+
+Serve the deck locally:
+
+```bash
+python3 -m http.server 8000 --bind 127.0.0.1
+```
+
+Open the [light presentation](http://localhost:8000/slides.html?theme=light).
+Light is the default, using white backgrounds, dark text, and accents from the
+[Red Hat brand palette](https://www.redhat.com/en/about/brand/standards/color).
+Code blocks use a matching light syntax palette.
+
+Press **T** to switch themes while keeping your place, or open the
+[dark presentation](http://localhost:8000/slides.html?theme=dark).
+The selected theme is stored in the URL. Press **S** for speaker notes.
+
 ## What's Inside
 
 ### Skills

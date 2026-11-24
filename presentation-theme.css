@@ -1,0 +1,129 @@
+/*
+ * Light presentation palette based on Red Hat's official brand colors:
+ * https://www.redhat.com/en/about/brand/standards/color
+ * Red-50 is the brand accent; danger-orange marks failures and cautions.
+ * Typography and slide geometry remain in the existing Reveal.js theme.
+ */
+:root {
+  color-scheme: light;
+  --deck-background: #ffffff;
+  --deck-text: #151515;
+  --deck-muted: #4d4d4d;
+  --deck-accent: #ee0000;
+  --deck-link: #004d99;
+  --deck-link-hover: #003366;
+  --deck-positive: #3d7317;
+  --deck-negative: #b1380b;
+  --deck-neutral: #147878;
+  --deck-surface: #f2f2f2;
+  --deck-table-heading: #f2f2f2;
+  --deck-border: #8c8c8c;
+  --deck-selection: #fce3e3;
+  --deck-code-background: #f2f2f2;
+  --deck-syntax-keyword: #5e40be;
+  --deck-syntax-string: #3d7317;
+  --deck-syntax-number: #9e4a06;
+
+  --r-background-color: var(--deck-background);
+  --r-main-color: var(--deck-text);
+  --r-heading-color: var(--deck-text);
+  --r-link-color: var(--deck-link);
+  --r-link-color-dark: var(--deck-link);
+  --r-link-color-hover: var(--deck-link-hover);
+  --r-selection-background-color: var(--deck-selection);
+  --r-selection-color: var(--deck-text);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --deck-background: #191919;
+  --deck-text: #ffffff;
+  --deck-muted: #a3a3a3;
+  --deck-accent: #42affa;
+  --deck-link: #42affa;
+  --deck-link-hover: #8dcffc;
+  --deck-positive: #69db7c;
+  --deck-negative: #ff6b6b;
+  --deck-neutral: #42affa;
+  --deck-surface: rgba(255, 255, 255, 0.05);
+  --deck-table-heading: rgba(255, 255, 255, 0.1);
+  --deck-border: rgba(255, 255, 255, 0.2);
+  --deck-selection: #00508a;
+  --deck-code-background: #272822;
+}
+
+/* A fixed accent avoids adding height to crowded slides. */
+:root[data-theme="light"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: 5px;
+  background: var(--deck-accent);
+  z-index: 10;
+  pointer-events: none;
+}
+
+:root[data-theme="light"] .reveal h1 {
+  color: var(--deck-accent);
+}
+
+.reveal .progress {
+  color: var(--deck-accent);
+}
+
+.reveal .slide-number,
+.reveal .slide-number a {
+  color: var(--deck-muted);
+  background: var(--deck-surface);
+}
+
+:root[data-theme="light"] .reveal pre {
+  box-sizing: border-box;
+  border: 1px solid var(--deck-border);
+  box-shadow: none;
+}
+
+:root[data-theme="light"] .reveal pre code {
+  background: var(--deck-code-background);
+  color: var(--deck-text);
+}
+
+/* Reset dark Monokai token colors before applying the light palette. */
+:root[data-theme="light"] .reveal .hljs [class*="hljs-"] {
+  color: inherit;
+}
+
+:root[data-theme="light"] .reveal .hljs .hljs-comment,
+:root[data-theme="light"] .reveal .hljs .hljs-quote,
+:root[data-theme="light"] .reveal .hljs .hljs-meta {
+  color: var(--deck-muted);
+}
+
+:root[data-theme="light"] .reveal .hljs .hljs-keyword,
+:root[data-theme="light"] .reveal .hljs .hljs-literal,
+:root[data-theme="light"] .reveal .hljs .hljs-type {
+  color: var(--deck-syntax-keyword);
+}
+
+:root[data-theme="light"] .reveal .hljs .hljs-string,
+:root[data-theme="light"] .reveal .hljs .hljs-regexp,
+:root[data-theme="light"] .reveal .hljs .hljs-addition {
+  color: var(--deck-syntax-string);
+}
+
+:root[data-theme="light"] .reveal .hljs .hljs-number,
+:root[data-theme="light"] .reveal .hljs .hljs-built_in,
+:root[data-theme="light"] .reveal .hljs .hljs-deletion {
+  color: var(--deck-syntax-number);
+}
+
+:root[data-theme="light"] .reveal .hljs .hljs-attr,
+:root[data-theme="light"] .reveal .hljs .hljs-attribute,
+:root[data-theme="light"] .reveal .hljs .hljs-property,
+:root[data-theme="light"] .reveal .hljs .hljs-name,
+:root[data-theme="light"] .reveal .hljs .hljs-title,
+:root[data-theme="light"] .reveal .hljs .hljs-section,
+:root[data-theme="light"] .reveal .hljs .hljs-symbol,
+:root[data-theme="light"] .reveal .hljs .hljs-bullet {
+  color: var(--deck-neutral);
+}
