@@ -28,6 +28,9 @@ Press **T** to switch themes while keeping your place, or open the
 [dark presentation](http://localhost:8000/slides.html?theme=dark).
 The selected theme is stored in the URL. Press **S** for speaker notes.
 
+The report-bug case study is currently hidden with `data-visibility="hidden"`
+on its section in `slides.html`. Remove that attribute to show it again.
+
 ## What's Inside
 
 ### Skills

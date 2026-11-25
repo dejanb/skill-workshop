@@ -1,6 +1,6 @@
 # Report-bug evals: speaker notes
 
-Six slides for a technical audience, approximately 8–10 minutes including discussion. This final case study follows trigger testing, CI, Promptfoo evaluation techniques, and an introduction to scenarios, mocks, and sandboxes. It sits immediately before Questions. Start at `slides.html#/report-bug-contract`. Press **S** for the embedded speaker view when serving the deck over HTTP.
+Six slides for a technical audience, approximately 8–10 minutes including discussion. This case study is currently hidden in the deck (`data-visibility="hidden"` on `#report-bug-evals`); remove that attribute to present it. It follows trigger testing, execution testing, Promptfoo grading techniques, the with/without comparison, and model and agent comparison, and comes before CI. Start at `slides.html#/report-bug-contract`. Press **S** for the embedded speaker view when serving the deck over HTTP.
 
 All results below come from stored upstream artifacts. No fresh eval run is represented. Source links pin the inspected repository snapshot. Baseline directory names identify separate stored runs.
 

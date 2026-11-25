@@ -41,6 +41,33 @@
     .reveal .eval-case .eval-evidence { font-size: 0.58em; }
     .reveal .eval-case table { font-size: 0.64em; text-align: left; }
     .reveal .eval-case table th, .reveal .eval-case table td { padding: 10px 14px; }
+
+    /* Inline SVG diagrams: colors come from the theme tokens so both themes work. */
+    .reveal svg.diagram { display: block; width: 100%; height: auto; max-height: 480px; margin: 10px auto 0; }
+    .reveal svg.diagram text { font-family: inherit; fill: var(--deck-text); }
+    .reveal svg.diagram .label { font-size: 24px; font-weight: 600; }
+    .reveal svg.diagram .sub { font-size: 18px; fill: var(--deck-muted); }
+    .reveal svg.diagram .caps { font-size: 16px; font-weight: 700; letter-spacing: 0.12em; fill: var(--deck-muted); }
+    .reveal svg.diagram .note { font-size: 19px; fill: var(--deck-muted); }
+    .reveal svg.diagram .box { fill: var(--deck-surface); stroke: var(--deck-border); stroke-width: 2; }
+    .reveal svg.diagram .frame { fill: none; stroke: var(--deck-border); stroke-width: 2; }
+    .reveal svg.diagram .dashed { stroke-dasharray: 9 7; }
+    .reveal svg.diagram .accent { stroke: var(--deck-accent); stroke-width: 3; }
+    .reveal svg.diagram .neutral { stroke: var(--deck-neutral); stroke-width: 3; }
+    .reveal svg.diagram .positive { stroke: var(--deck-positive); stroke-width: 3; }
+    .reveal svg.diagram .negative { stroke: var(--deck-negative); stroke-width: 3; }
+    .reveal svg.diagram text.positive { stroke: none; fill: var(--deck-positive); }
+    .reveal svg.diagram text.negative { stroke: none; fill: var(--deck-negative); }
+    .reveal svg.diagram .wire { fill: none; stroke: var(--deck-muted); stroke-width: 2; }
+    .reveal svg.diagram .arrowhead { fill: var(--deck-muted); }
+    .reveal svg.diagram .label-sm { font-size: 21px; font-weight: 600; }
+    .reveal svg.diagram .grad-start { stop-color: var(--deck-neutral); }
+    .reveal svg.diagram .grad-end { stop-color: var(--deck-accent); }
+    .reveal .caption { font-size: 0.75em; margin-top: 0.4em; }
+    .reveal pre.dense { font-size: 0.42em; }
+    .reveal table.refs { font-size: 0.55em; text-align: left; }
+    .reveal table.refs td { padding: 8px 16px; }
+    .reveal table.refs td:first-child { white-space: nowrap; }
   </style>
 </head>
 <body>
@@ -62,6 +89,9 @@
     <br>
     <blockquote>"Improve performance, make no mistakes"</blockquote>
     <p class="small">^ This rarely yields the desired outcome</p>
+    <aside class="notes">
+      <p>The model is the same for everyone. What differs is the context we give it: project instructions, skills, and the task itself. This talk covers three things: how to write that context, how to package repeatable work as skills, and how to test that the skills actually work.</p>
+    </aside>
   </section>
 
   <section>
@@ -75,18 +105,11 @@
       <li>Key invariants and gotchas</li>
     </ul>
     <br><br>
-    <p class="small">Open spec — <a href="https://agents.md">agents.md</a> — most major agents read it natively</p>
-  </section>
-
-  <section>
-    <h2>Cross-agent compatibility</h2>
-    <br>
-    <p>Most agents read <code>AGENTS.md</code> directly</p>
-    <p>Claude Code is the main exception — create a <code>CLAUDE.md</code>:</p>
-    <br>
-    <pre><code class="language-markdown">@AGENTS.md</code></pre>
-    <br>
-    <p class="small">One file for all agents, symlink for the rest</p>
+    <p class="small">Open spec — <a href="https://agents.md">agents.md</a> — read natively by most agents, including Claude Code</p>
+    <aside class="notes">
+      <p>AGENTS.md is an open format for project instructions that coding agents read at the start of a session: how to install and test the project, which tools to use, and what to watch out for. Most agents read it natively, and Claude Code does too from v2.1.277.</p>
+      <p>One catch if someone asks: when a repository also has a CLAUDE.md, or even a personal CLAUDE.local.md, Claude Code reads that instead of AGENTS.md by default. If you need both, put <code>@AGENTS.md</code> in the CLAUDE.md to import it. Source: <a href="https://code.claude.com/docs/en/memory#agents-md">Claude Code docs, AGENTS.md</a>.</p>
+    </aside>
   </section>
 
   <section>
@@ -99,7 +122,10 @@
       <li><span class="highlight-red">Remove:</span> what the agent can already figure out — standard directory structures, obvious patterns</li>
     </ul>
     <br>
-    <p class="small">Research from ETH Zurich: generic auto-generated context can <em>hurt</em> agent performance</p>
+    <p class="small">ETH Zurich, 2026: no significant success gain, ~20% higher cost — <a href="https://arxiv.org/abs/2602.11988">arXiv</a></p>
+    <aside class="notes">
+      <p>The ETH Zurich and LogicStar study compared no context file, an LLM-generated file, and the developers' own file across four agent and model pairs. Success-rate differences were small and not statistically significant; the extra inference cost, about 20 percent, was. Generated repository overviews did not help agents find relevant files faster. The authors recommend limiting context files to details the agent cannot infer, such as custom build commands. Press coverage quoted minus 3 and plus 4 percent from the first version of the paper; avoid those numbers.</p>
+    </aside>
   </section>
 
   <section>
@@ -112,10 +138,13 @@
 | Coding patterns      | `docs/development/coding-patterns.md` |</code></pre>
     <br>
     <ul>
-      <li>Keep it under 150 lines (30–50 for small repos)</li>
+      <li>Rule of thumb: under 150 lines (30–50 for small repos)</li>
       <li>Document small invariants — things that fail silently</li>
       <li>If the agent keeps making the same mistake, add a rule here</li>
     </ul>
+    <aside class="notes">
+      <p>Point to deeper documents instead of copying them in. The agent can read ARCHITECTURE.md when it needs to; it should not pay for it on every turn. The line count is a rule of thumb, not a measured threshold. When the agent repeats a mistake, add a rule, and later we will see that the same mistake also deserves a test case.</p>
+    </aside>
   </section>
 </section>
 
@@ -139,25 +168,44 @@ description: Run project checks before committing.
 3. If either step fails, show the errors and stop
 4. Stage and commit following conventional commits</code></pre>
     <p class="small">Open spec — <a href="https://agentskills.io">agentskills.io</a></p>
+    <aside class="notes">
+      <p>A skill is a folder with a SKILL.md file: YAML frontmatter with a name and a description, then plain instructions. Where AGENTS.md is always on, a skill is for a specific, repeatable task. The format is an open spec, so the same skill works across agents.</p>
+    </aside>
   </section>
 
-  <section>
-    <h2>Progressive disclosure</h2>
-    <br>
-    <div class="two-col">
-      <div>
-        <h3 class="highlight-blue">Always loaded</h3>
-        <p>Name + description</p>
-        <p class="small">Agent decides relevance from this alone</p>
-      </div>
-      <div>
-        <h3 class="highlight-green">Loaded on demand</h3>
-        <p>Full SKILL.md + resources</p>
-        <p class="small">Only when the agent decides the skill is relevant</p>
-      </div>
-    </div>
-    <br>
-    <p>Keeps prompt size under control while making vast amounts of information available</p>
+  <section id="context-window">
+    <h2>What's in the context window</h2>
+    <svg class="diagram" viewBox="0 0 960 460" role="img" aria-labelledby="ctx-title ctx-desc">
+      <title id="ctx-title">What's in the context window</title>
+      <desc id="ctx-desc">The system prompt, AGENTS.md, and skill names and descriptions are always loaded. Full SKILL.md files and their resources are loaded only when the agent picks the skill.</desc>
+      <rect class="frame" x="20" y="10" width="560" height="440" rx="14"/>
+      <text class="caps" x="50" y="48">ALWAYS LOADED — EVERY TURN</text>
+      <rect class="box" x="50" y="66" width="500" height="52" rx="8"/>
+      <text class="label" x="300" y="100" text-anchor="middle">System prompt + tools</text>
+      <rect class="box accent" x="50" y="130" width="500" height="52" rx="8"/>
+      <text class="label" x="300" y="164" text-anchor="middle">AGENTS.md / CLAUDE.md</text>
+      <rect class="box neutral" x="50" y="194" width="500" height="52" rx="8"/>
+      <text class="label" x="300" y="228" text-anchor="middle">Skill names + descriptions</text>
+      <rect class="frame dashed" x="40" y="276" width="520" height="160" rx="10"/>
+      <text class="caps" x="60" y="308">LOADED ON DEMAND</text>
+      <rect class="box positive" x="60" y="322" width="480" height="46" rx="8"/>
+      <text class="label" x="300" y="353" text-anchor="middle">Full SKILL.md</text>
+      <rect class="box positive" x="60" y="378" width="480" height="46" rx="8"/>
+      <text class="label" x="300" y="409" text-anchor="middle">references/ · scripts/ · assets/</text>
+      <line class="wire" x1="556" y1="156" x2="610" y2="156"/>
+      <text class="label" x="622" y="150">Paid on every turn</text>
+      <text class="note" x="622" y="178">keep what it can't infer</text>
+      <line class="wire" x1="556" y1="220" x2="610" y2="220"/>
+      <text class="label" x="622" y="214">The router</text>
+      <text class="note" x="622" y="242">decides if a skill loads</text>
+      <line class="wire" x1="546" y1="373" x2="610" y2="373"/>
+      <text class="label" x="622" y="367">Only when relevant</text>
+      <text class="note" x="622" y="395">detail costs nothing until used</text>
+    </svg>
+    <aside class="notes">
+      <p>This is the picture to keep in mind for the rest of the talk. The top part is paid for on every turn: the system prompt, AGENTS.md, and one short entry per skill, its name and description. That is why AGENTS.md should stay short, and why the description matters so much: it is the only thing the agent sees when deciding whether to load the skill.</p>
+      <p>The bottom part is progressive disclosure. The full SKILL.md, and any references or scripts it points to, are read only when the agent picks the skill. A skill can carry a lot of detail without costing anything until it is used.</p>
+    </aside>
   </section>
 
   <section>
@@ -204,6 +252,9 @@ description: Run a security review on the current
   security or review for vulnerabilities.</code></pre>
     <br>
     <p class="small">Action verbs, not guide-style phrasing</p>
+    <aside class="notes">
+      <p>Skills load in two ways: explicitly, when the user types the slash command, or automatically, when the agent matches the request to a description. Automatic loading is where things go wrong. If the description reads like documentation, the agent decides it already knows the topic and answers by itself. Nothing errors; the skill simply never runs. Describe an action and when to use it.</p>
+    </aside>
   </section>
 
   <section>
@@ -232,6 +283,9 @@ hardcoded secrets.</code></pre>
     </div>
     <br>
     <p class="small">The agent doesn't need to understand the concept — it needs to know what to <em>do</em></p>
+    <aside class="notes">
+      <p>The same applies to the body. The model already knows what a security review is. What it does not know is your process: which diff to read, what to check, what format to return, and when to stop. Write steps. Copying reference documentation in adds tokens without adding capability.</p>
+    </aside>
   </section>
 </section>
 
@@ -247,6 +301,9 @@ hardcoded secrets.</code></pre>
       <tr><td>Team</td><td>Shared repo + symlinks or submodule</td></tr>
       <tr><td>Organization</td><td>Plugin bundles + marketplace</td></tr>
     </table>
+    <aside class="notes">
+      <p>A skill starts as a folder in your repo. When a team wants the same skills, move them to a shared repo. Across an organization, bundle them into plugins and publish them through a marketplace so people can install and update them with one command.</p>
+    </aside>
   </section>
 
   <section>
@@ -324,11 +381,14 @@ ln -s ~/.shared-skills/skills/* .agents/skills/</code></pre>
     <p class="small">No more manual symlinks, submodules, or agent-specific packaging</p>
     <br>
     <p class="small"><a href="https://developers.redhat.com/articles/2026/04/08/manage-ai-context-lola-package-manager">developers.redhat.com — Manage AI context with Lola</a></p>
+    <aside class="notes">
+      <p>Plugins and marketplaces are agent-specific packaging. Lola is a package manager for AI context: it installs and versions the same skills into every supported agent, so a team using several agents does not maintain symlinks or a separate package for each one.</p>
+    </aside>
   </section>
 </section>
 
 <!-- ============ 4. AUTHORING WITH SKILL-CREATOR (EXTENDED) ============ -->
-<section class="extended">
+<section>
   <section>
     <h2>Authoring with skill-creator</h2>
     <p>Do the work first, formalize it second</p>
@@ -356,11 +416,22 @@ ln -s ~/.shared-skills/skills/* .agents/skills/</code></pre>
   </section>
 </section>
 
-<!-- ============ 5. WHAT GOES WRONG (EXTENDED) ============ -->
-<section class="extended">
-  <section>
-    <h2>What goes wrong</h2>
+<!-- ============ TESTING SKILLS ============ -->
+<section id="testing">
+  <section id="testing-overview">
+    <h2>Testing skills</h2>
     <p class="highlight-red">Skills fail silently</p>
+    <br>
+    <ul>
+      <li><strong>Silent misfire</strong> — description too vague, agent never picks it up</li>
+      <li><strong>Silent regression</strong> — someone "improves" the instructions, skill breaks</li>
+      <li><strong>Side-effect surprise</strong> — eval run creates real MRs, pushes branches</li>
+    </ul>
+    <br>
+    <p class="small">Unlike code, there's no exception — you find out from your users</p>
+    <aside class="notes">
+      <p>Skills fail in three quiet ways. A vague description means the skill never loads, and the agent improvises instead. A well-meant edit to the instructions passes code review and quietly breaks the behavior. And a test run of a skill that takes actions can take those actions for real: we had an eval run create real merge requests and push branches. None of these raise an error, so the only way to notice is to test.</p>
+    </aside>
   </section>
 
   <section>
@@ -376,11 +447,11 @@ ln -s ~/.shared-skills/skills/* .agents/skills/</code></pre>
   <section>
     <h2>Action verbs matter</h2>
     <br>
-    <pre><code class="language-yaml"># Triggers ~33% of the time
+    <pre><code class="language-yaml"># Rarely triggers: reads like reference material
 description: Security review guidelines and best
   practices for code changes
 
-# Triggers ~83% of the time
+# Triggers far more often: an action + when to use it
 description: Run a security review on the current
   code changes. Use when the user asks to check
   security, review for vulnerabilities,
@@ -388,6 +459,9 @@ description: Run a security review on the current
     <br>
     <p>First reads like docs — agent can answer without invoking the skill</p>
     <p>Second describes an <span class="highlight-green">action</span> the agent can't perform alone</p>
+    <aside class="notes">
+      <p>This is the same pair as on the description slide, now with the trigger tests that showed the difference. Run examples/02-trigger-layers.yaml with repeats to get current numbers for your model before quoting any rate.</p>
+    </aside>
   </section>
 
   <section>
@@ -409,21 +483,39 @@ description: Run a security review on the current
     <br>
     <p>Running a skill in an eval is not the same as running it in a sandbox</p>
   </section>
-</section>
 
-<!-- ============ 6. TESTING WITH PROMPTFOO ============ -->
-<section>
-  <section>
-    <h2>Testing skills</h2>
-    <p class="highlight-red">Skills fail silently</p>
-    <br>
-    <ul>
-      <li><strong>Silent misfire</strong> — description too vague, agent never picks it up</li>
-      <li><strong>Silent regression</strong> — someone "improves" the instructions, skill breaks</li>
-      <li><strong>Side-effect surprise</strong> — eval run creates real MRs, pushes branches</li>
-    </ul>
-    <br>
-    <p class="small">Unlike code, there's no exception — you find out from your users</p>
+  <section id="eval-layers">
+    <h2>Layers of skill evaluation</h2>
+    <svg class="diagram" viewBox="0 0 960 470" role="img" aria-labelledby="layers-title layers-desc">
+      <title id="layers-title">Layers of skill evaluation</title>
+      <desc id="layers-desc">A pyramid. From the cheap, deterministic base to the realistic, costly top: static checks, trigger tests, execution tests, and with versus without comparison.</desc>
+      <defs>
+        <marker id="arrow-layers" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="arrowhead" d="M0,0 L10,5 L0,10 z"/>
+        </marker>
+      </defs>
+      <polygon class="box neutral" points="30,450 630,450 588.6,360 71.4,360"/>
+      <text class="label" x="330" y="400" text-anchor="middle">Static checks</text>
+      <text class="sub" x="330" y="428" text-anchor="middle">Frontmatter, token budget, overlap</text>
+      <polygon class="box neutral" points="76,350 584,350 542.6,260 117.4,260"/>
+      <text class="label" x="330" y="300" text-anchor="middle">Trigger tests</text>
+      <text class="sub" x="330" y="328" text-anchor="middle">Does it load when it should?</text>
+      <polygon class="box neutral" points="122,250 538,250 496.6,160 163.4,160"/>
+      <text class="label" x="330" y="200" text-anchor="middle">Execution tests</text>
+      <text class="sub" x="330" y="228" text-anchor="middle">Does it do the job right?</text>
+      <polygon class="box accent" points="168,150 492,150 450.6,60 209.4,60"/>
+      <text class="label" x="330" y="100" text-anchor="middle">With vs without</text>
+      <text class="sub" x="330" y="128" text-anchor="middle">Does it actually help?</text>
+      <line class="wire" x1="712" y1="440" x2="712" y2="74" marker-end="url(#arrow-layers)"/>
+      <text class="label" x="734" y="88">Closer to real use</text>
+      <text class="note" x="734" y="116">slower, costs more</text>
+      <text class="label" x="734" y="414">Cheap, repeatable</text>
+      <text class="note" x="734" y="442">run on every change</text>
+    </svg>
+    <aside class="notes">
+      <p>This is the map for the rest of the talk. Work from the bottom up. Static checks need no model: is the frontmatter valid, is the skill within its token budget, does its description overlap with a sibling's. Trigger tests ask whether the agent loads the skill when it should and leaves it alone when it should not. Execution tests ask whether the skill does the job correctly once loaded. At the top, compare the same tasks with and without the skill: does it make the agent better at all?</p>
+      <p>Each layer up is more realistic, slower, and more expensive, so run the lower layers often and the upper ones when something changes.</p>
+    </aside>
   </section>
 
   <section id="promptfoo-overview">
@@ -438,6 +530,7 @@ description: Run a security review on the current
     </ul>
     <br>
     <p class="small">YAML config → assertions → CLI → comparison and reporting</p>
+    <p class="small"><a href="https://www.promptfoo.dev">promptfoo.dev</a> · <a href="https://github.com/promptfoo/promptfoo">github.com/promptfoo/promptfoo</a></p>
     <aside class="notes">
       <p>Our reason for choosing Promptfoo is the combination of provider integrations, assertion types, shared test suites, and result analysis in one framework. CI is one part of that workflow. Other runners can also persist results and run in automation; we should compare the capabilities needed for the task. The following slides demonstrate these Promptfoo features.</p>
       <p>Sources: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/">Promptfoo assertion types</a>, <a href="https://www.promptfoo.dev/docs/guides/evaluate-coding-agents/">Agent providers</a>, <a href="https://www.promptfoo.dev/docs/guides/gpt-vs-claude-vs-gemini/">Provider comparisons and result inspection</a>, <a href="https://www.promptfoo.dev/docs/integrations/ci-cd/">CI integrations</a>.</p>
@@ -460,33 +553,32 @@ tests:
       - type: skill-used
         value: pre-commit-check</code></pre>
     <p class="small"><code>skill-used</code> checks actual Skill tool routing, not just output text</p>
+    <aside class="notes">
+      <p>The provider runs the Claude agent in a small fixture project that has the skill installed. The test sends a natural request and asserts that the agent actually invoked the skill. That check looks at the tool call, not at whether the answer happens to mention pre-commit.</p>
+    </aside>
   </section>
 
   <section>
     <h2>Three kinds of trigger prompts</h2>
     <pre><code class="language-yaml">tests:
   # Positive — should trigger
-  - vars:
-      prompt: 'Review this code for security vulnerabilities'
+  - vars: { prompt: 'Review this code for security vulnerabilities' }
     assert:
-      - type: skill-used
-        value: security-review
+      - { type: skill-used, value: security-review }
 
   # Near-miss — should trigger sibling, not this one
-  - vars:
-      prompt: 'Check if the code follows our naming conventions'
+  - vars: { prompt: 'Check if the code follows our naming conventions' }
     assert:
-      - type: not-skill-used
-        value: security-review
-      - type: skill-used
-        value: style-check
+      - { type: not-skill-used, value: security-review }
+      - { type: skill-used, value: style-check }
 
   # Negative — unrelated, should trigger nothing
-  - vars:
-      prompt: 'What time is the standup meeting?'
+  - vars: { prompt: 'What time is the standup meeting?' }
     assert:
-      - type: not-skill-used
-        value: security-review</code></pre>
+      - { type: not-skill-used, value: security-review }</code></pre>
+    <aside class="notes">
+      <p>One positive test is not enough. Near-misses matter most once you have more than a handful of skills: a broad description can capture requests meant for a sibling. Here a naming-convention question must go to style-check, not security-review. Negative tests confirm the skill stays out of unrelated work. The fixture project matters too: skills must be installed where the agent discovers them, or the agent may read SKILL.md as a plain file and the test passes for the wrong reason.</p>
+    </aside>
   </section>
 
   <section>
@@ -510,335 +602,10 @@ tests:
     <br>
     <p class="small">Positive, near-miss, and negative — all in one run</p>
   </section>
-
-  <section>
-    <h2>Start here</h2>
-    <br>
-    <ol>
-      <li>Pick one skill in your project</li>
-      <li>Add one trigger test — positive + negative</li>
-      <li>Run it: <code>npx promptfoo eval</code></li>
-    </ol>
-    <br>
-    <p class="small">15 minutes of work. It will tell you more than reading the SKILL.md.</p>
-  </section>
-</section>
-
-<!-- ============ CI ============ -->
-<section id="ci">
-  <section id="ci-overview">
-    <h2>Taking it to CI</h2>
-    <p>Catch regressions before they ship</p>
-  </section>
-
-  <section>
-    <h2>GitHub Actions</h2>
-    <pre><code class="language-yaml">name: Skill Evals
-on:
-  pull_request:
-    paths:
-      - 'plugins/**/SKILL.md'
-      - 'plugins/**/evals/**'
-jobs:
-  eval:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: promptfoo/promptfoo-action@v1
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          config: 'plugins/dev/skills/pre-commit-check/evals/promptfooconfig.yaml'
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}</code></pre>
-    <p class="small">Only runs when SKILL.md or eval files change — not on every PR</p>
-  </section>
-
-  <section>
-    <h2>Progressive rollout</h2>
-    <br>
-    <ol>
-      <li>Start informational — report results, don't block</li>
-      <li>Build confidence — team sees what tests catch</li>
-      <li>Flip to blocking gate</li>
-    </ol>
-    <br>
-    <p class="small">Track run cost and judge cost alongside pass rates.</p>
-  </section>
-</section>
-
-<!-- ============ PROMPTFOO EVALUATION TECHNIQUES ============ -->
-<section id="promptfoo-techniques">
-  <section id="promptfoo-anatomy" class="eval-case">
-    <h2>Anatomy of a Promptfoo eval</h2>
-    <table>
-      <thead><tr><th>Configuration</th><th>Purpose</th></tr></thead>
-      <tbody>
-        <tr><td><code>providers</code></td><td>What runs: a model, an agent, or your application</td></tr>
-        <tr><td><code>prompts</code> + <code>tests.vars</code></td><td>The task and its input cases</td></tr>
-        <tr><td><code>tests.assert</code></td><td>The checks that decide whether each result passes</td></tr>
-      </tbody>
-    </table>
-    <p class="eval-body">Choose the execution environment and the grading method separately.</p>
-    <p class="small">One agent run can have JSON, code, and model-graded assertions.</p>
-    <aside class="notes">
-      <p>So far we checked whether a skill was selected and put that check in CI. Now broaden the assertions. The provider runs the system under test; an assertion grades evidence from that run. JSON is an output format. An agent is an execution environment. An LLM judge is a grading method. These choices can be combined in one eval.</p>
-      <p>Sources: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/">Promptfoo assertions</a>, <a href="https://www.promptfoo.dev/docs/providers/claude-agent-sdk/">Claude Agent SDK provider</a>.</p>
-    </aside>
-  </section>
-
-  <section id="promptfoo-exact-checks" class="eval-case">
-    <h2>Exact checks</h2>
-    <table>
-      <thead><tr><th>Assertion</th><th>Useful for</th></tr></thead>
-      <tbody>
-        <tr><td><code>equals</code></td><td>An exact status or classification</td></tr>
-        <tr><td><code>contains</code> / <code>not-contains</code></td><td>Required or forbidden literal text</td></tr>
-        <tr><td><code>regex</code> / <code>not-regex</code></td><td>A heading or other text pattern</td></tr>
-      </tbody>
-    </table>
-    <pre><code class="language-yaml"># Check a heading, allowing the words elsewhere in the report
-assert:
-  - type: not-regex
-    value: '(^|\n)### \*\*Root Cause\*\*(\r?\n|$)'</code></pre>
-    <p class="eval-body">Make the check as precise as the rule it protects.</p>
-    <aside class="notes">
-      <p>A skipped optional section gives us a concrete example. Forbidding the words Root Cause everywhere would also reject a valid note explaining what was skipped. This expression checks the actual Markdown heading. Exact checks are repeatable and require no judge-model call; choosing the right condition still takes judgment.</p>
-      <p>Source: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/deterministic/">Promptfoo deterministic assertions</a>.</p>
-    </aside>
-  </section>
-
-  <section id="promptfoo-json" class="eval-case">
-    <h2>JSON and schema validation</h2>
-    <div class="two-col">
-      <div>
-        <pre><code class="language-yaml">assert:
-  - type: is-json
-    value:
-      type: object
-      required: [summary, labels]
-      properties:
-        summary:
-          type: string
-        labels:
-          type: array
-          items:
-            type: string</code></pre>
-      </div>
-      <div>
-        <h3>Output matching this schema</h3>
-        <pre><code class="language-json">{
-  "summary": "SBOM pages repeat entries",
-  "labels": ["reported-by-ai"]
-}</code></pre>
-        <p class="eval-body">The required label is<br><code>ai-generated-jira</code>.</p>
-        <p class="eval-body">The shape passes.<br>The label still needs a check.</p>
-      </div>
-    </div>
-    <p class="small"><code>is-json</code>: whole output. <code>contains-json</code>: JSON within other text.</p>
-    <aside class="notes">
-      <p>The schema checks required fields and their types. It intentionally accepts any string in labels, so the wrong label can pass. A schema can also enforce an enum or const; the next slide uses code to show how domain rules can be expressed separately. A provider's structured-output setting constrains generation, while this assertion checks the returned result.</p>
-      <p>Source: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/deterministic/#is-json">Promptfoo JSON assertions and schemas</a>.</p>
-    </aside>
-  </section>
-
-  <section id="promptfoo-code" class="eval-case">
-    <h2>JavaScript assertions</h2>
-    <pre><code class="language-yaml">assert:
-  - type: javascript
-    value: |
-      try {
-        const report = typeof output === 'string'
-          ? JSON.parse(output) : output;
-        const pass = Array.isArray(report?.labels) &amp;&amp;
-          report.labels.includes('ai-generated-jira');
-        return { pass, score: pass ? 1 : 0,
-          reason: pass ? 'Required label present'
-                       : 'Required label missing' };
-      } catch {
-        return { pass: false, score: 0, reason: 'Invalid JSON' };
-      }</code></pre>
-    <p class="eval-body">Use code for exact fields, counts, and relationships.</p>
-    <p class="small">Python assertions are also supported. Larger graders can live in <code>file://</code> scripts.</p>
-    <aside class="notes">
-      <p>The wrong label from the previous slide now fails. Parsing errors fail too, instead of becoming an empty result that accidentally passes. Returning a reason makes a failed assertion easier to investigate. Code can enforce a known contract, but this check alone says nothing about whether the report preserves the user's facts.</p>
-      <p>Source: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/javascript/">Promptfoo JavaScript assertions</a>.</p>
-    </aside>
-  </section>
-
-  <section id="promptfoo-agents" class="eval-case">
-    <h2>Evaluating an agent</h2>
-    <pre><code class="language-yaml">providers:
-  - id: anthropic:claude-agent-sdk
-    config:
-      working_dir: ./fixtures/consumer
-      setting_sources: ['project']
-      skills: ['security-review']
-prompts:
-  - 'Review src/app.py for security vulnerabilities'
-tests:
-  - assert:
-      - type: skill-used
-        value: security-review</code></pre>
-    <p class="eval-body">A model call produces an answer.<br>An agent run can discover skills and use tools.</p>
-    <p class="small">Invocation metadata establishes selection. Add checks for findings or changed state.</p>
-    <aside class="notes">
-      <p>This provider runs a real coding-agent loop in a fixture project. The skills list makes the named discovered skill available; the natural prompt still leaves the invocation decision to the agent. Promptfoo checks normalized invocation metadata. That proves selection, while an outcome assertion must establish whether the findings are correct. For state-changing tasks, inspect resulting files or Git state and reset the environment between runs.</p>
-      <p>Source: <a href="https://www.promptfoo.dev/docs/providers/claude-agent-sdk/#testing-skill-invocation">Promptfoo agent provider and skill invocation</a>.</p>
-    </aside>
-  </section>
-
-  <section id="promptfoo-llm-judge" class="eval-case">
-    <h2>LLM as a judge</h2>
-    <pre><code class="language-yaml"># Assertion excerpt; source_facts is a test variable
-assert:
-  - type: llm-rubric
-    provider: openai:gpt-5-mini
-    value: |
-      Source facts: {{source_facts}}
-      Pass only if the report preserves the supplied
-      reproduction steps, observed result, and environment.
-      Fail if it invents a root cause or a proposed fix.
-      Cite the relevant output text in your reason.</code></pre>
-    <p class="eval-body">Useful when correct wording can vary.</p>
-    <p class="eval-body">Calibrate the rubric against human-labeled good and bad outputs.</p>
-    <p class="small">The grading model is configured separately from the system under test.</p>
-    <aside class="notes">
-      <p>The judge compares the report with source facts supplied through the rubric. This lets it evaluate meaning when several phrasings would be acceptable. Define concrete pass and fail conditions, inspect its evidence, and check agreement with human judgments. Pin the judge configuration for comparisons. Model grading adds cost and can vary, so retain exact code checks for exact rules.</p>
-      <p>Source: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/model-graded/llm-rubric/">Promptfoo LLM rubric, test variables, and grading-provider overrides</a>.</p>
-    </aside>
-  </section>
-
-  <section id="promptfoo-agent-judge" class="eval-case">
-    <h2>Agent as a judge</h2>
-    <pre><code class="language-yaml">assert:
-  - type: agent-rubric
-    provider:
-      id: anthropic:claude-agent-sdk
-      config:
-        working_dir: ./fixtures/report-output
-    value: |
-      Read source-facts.md and outputs/preview.md.
-      Verify that the preview preserves the source facts.
-      Fail on invented reproduction steps or environment.
-      Cite file evidence for the verdict.</code></pre>
-    <p class="eval-body">The judge gathers evidence from files using tools.</p>
-    <p class="small">Give it the matching run's artifacts and read-only access.</p>
-    <aside class="notes">
-      <p>Here the agent is the grader. The target could be another agent, a model, or an application. Unlike the preceding text-only rubric, this grader needs tools and a workspace containing the evidence. The fixture path is illustrative: stage source-facts.md and the generated preview there for the run being graded. Promptfoo's Claude agent provider defaults to read-only tools. Use code for checks that are already exact and reserve this judge for artifact inspection requiring interpretation.</p>
-      <p>Source: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/model-graded/agent-rubric/">Promptfoo agent rubric and supported grading providers</a>.</p>
-    </aside>
-  </section>
-
-  <section id="promptfoo-evidence" class="eval-case">
-    <h2>Matching checks to evidence</h2>
-    <table>
-      <thead><tr><th>Question</th><th>Evidence and check</th></tr></thead>
-      <tbody>
-        <tr><td>Is the output well formed?</td><td>JSON schema</td></tr>
-        <tr><td>Are exact values correct?</td><td>Parsed fields + code assertions</td></tr>
-        <tr><td>Was the skill invoked?</td><td>Invocation metadata + <code>skill-used</code></td></tr>
-        <tr><td>Were the source facts preserved?</td><td>Reference facts + calibrated LLM rubric</td></tr>
-        <tr><td>Do artifacts support the claim?</td><td>Files or state + code checks / agent judge</td></tr>
-      </tbody>
-    </table>
-    <p class="eval-body">Combine checks for one case, then compare repeated runs.</p>
-    <p class="small">To measure improvement, keep the task and environment fixed and compare with / without the skill.</p>
-    <aside class="notes">
-      <p>Each row answers a different question. A schema pass can coexist with a factual error, and skill invocation can coexist with an incorrect outcome. Use independent reference facts and known outputs to validate the graders themselves. Repeated trials reveal variability; a small perfect run is still only a smoke check. Next we will use Promptfoo to compare models and agents, then introduce execution-testing concepts before the final case study.</p>
-      <p>Sources: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/">Promptfoo assertion types</a>, <a href="https://www.promptfoo.dev/docs/usage/command-line/">Promptfoo repeated eval runs</a>. The combined evidence checklist is guidance for this workshop.</p>
-    </aside>
-  </section>
-</section>
-
-<!-- ============ COMPARING MODELS AND AGENTS WITH PROMPTFOO ============ -->
-<section id="comparing-models-agents">
-  <section id="comparison-basics" class="eval-case">
-    <h2>Comparing models in Promptfoo</h2>
-    <pre><code class="language-yaml">providers:
-  - openai:chat:gpt-5.4
-  - anthropic:messages:claude-sonnet-5
-prompts:
-  - 'Classify as billing or technical. Return only the label: {{text}}'
-tests:
-  - vars:
-      text: 'The application crashes on startup.'
-    assert:
-      - type: equals
-        value: technical</code></pre>
-    <p class="eval-body">Promptfoo runs the same prompt and tests against each provider.</p>
-    <p class="small">Minimal example. Expand the case set before drawing conclusions.</p>
-    <aside class="notes">
-      <p>Save this as promptfooconfig.yaml and configure authentication for both model APIs. Adding a provider adds another configuration to compare against the shared test set. This small classification task illustrates the mechanism; it is not a benchmark or a claim about either model. Keep grading and task inputs fixed while changing providers.</p>
-      <p>Source: <a href="https://www.promptfoo.dev/docs/guides/gpt-vs-claude-vs-gemini/">Promptfoo, comparing model providers on shared tasks</a>.</p>
-    </aside>
-  </section>
-
-  <section id="comparison-design" class="eval-case">
-    <h2>Comparing agents in Promptfoo</h2>
-    <pre><code class="language-yaml">providers:
-  - id: anthropic:claude-agent-sdk
-    label: claude-defaults
-    config:
-      working_dir: ./fixtures/consumer
-  - id: openai:codex-sdk
-    label: codex-defaults
-    config:
-      working_dir: ./fixtures/consumer
-      sandbox_mode: read-only
-      approval_policy: never</code></pre>
-    <p class="eval-body">Each provider runs an agent against the same fixture project.</p>
-    <p class="small">This compares complete setups, including their configured models and tools.</p>
-    <aside class="notes">
-      <p>This is the provider portion of a second config. Save it at the workshop root so the fixture path resolves correctly, then append the shared task from the next slide. Install and authenticate the corresponding agent SDKs. Claude's provider gives read-only tools when working_dir is set; Codex is explicitly configured read-only. These defaults can use different models, so the result describes the complete configurations. To compare model choices within one agent, repeat that agent provider with different config.model values.</p>
-      <p>Sources: <a href="https://www.promptfoo.dev/docs/providers/claude-agent-sdk/">Promptfoo Claude Agent SDK provider</a>, <a href="https://www.promptfoo.dev/docs/providers/openai-codex-sdk/">Promptfoo Codex SDK provider</a>.</p>
-    </aside>
-  </section>
-
-  <section id="comparison-promptfoo" class="eval-case">
-    <h2>Shared tests for agent runs</h2>
-    <pre><code class="language-yaml"># Append to the agent provider configuration
-prompts:
-  - &gt;
-    Read src/app.py. Which database module is imported?
-    Return only the module name.
-tests:
-  - assert:
-      - type: equals
-        value: sqlite3</code></pre>
-    <p class="eval-body">Both agents receive the same task and success criterion.</p>
-    <p class="small">The fixture supplies the evidence. The assertion supplies the expected answer.</p>
-    <aside class="notes">
-      <p>The workshop fixture imports sqlite3 in src/app.py, giving this introductory task a checkable answer. This assertion checks the final answer; it does not prove that the agent read the file. Add trace checks when tool use is part of the requirement. The same provider pattern can reuse richer outcome checks or supported skill-invocation assertions from earlier slides. This agent comparison is a separate exercise from the direct-model classification example.</p>
-      <p>Sources: <code>fixtures/consumer/src/app.py</code>, <a href="https://www.promptfoo.dev/docs/guides/evaluate-coding-agents/">Promptfoo shared tasks and agent evidence</a>.</p>
-    </aside>
-  </section>
-
-  <section id="comparison-results" class="eval-case">
-    <h2>Run and compare</h2>
-    <pre><code class="language-bash"># Run the chosen promptfooconfig.yaml
-npx promptfoo eval --repeat 3 --no-cache
-npx promptfoo view</code></pre>
-    <table>
-      <thead><tr><th>In the comparison</th><th>Look for</th></tr></thead>
-      <tbody>
-        <tr><td>Results by provider</td><td>Which cases pass, and why others fail</td></tr>
-        <tr><td>Repeated attempts</td><td>Whether results vary between runs</td></tr>
-        <tr><td>Usage and timing</td><td>Latency and reported token usage or cost</td></tr>
-      </tbody>
-    </table>
-    <p class="small">Cost reporting depends on the provider. Three repeats are a smoke check.</p>
-    <aside class="notes">
-      <p>Run either the complete model config or the combined agent config, each saved as promptfooconfig.yaml. The viewer lets us inspect outputs and assertions by provider. Repeats should execute fresh calls, and state-changing tests also need fresh environments. Pin model and runtime versions, use representative cases, and keep grading fixed for meaningful comparisons. Provider metadata determines which usage and cost fields are available. No results from these illustrative comparisons are claimed here.</p>
-      <p>Sources: <a href="https://www.promptfoo.dev/docs/usage/command-line/">Promptfoo eval, repeat, cache, and viewer commands</a>, <a href="https://www.promptfoo.dev/docs/guides/gpt-vs-claude-vs-gemini/">Promptfoo comparison results</a>.</p>
-    </aside>
-  </section>
 </section>
 
 <!-- ============ EXECUTION TESTING CONCEPTS ============ -->
-<section id="execution-testing" class="extended">
+<section id="execution-testing">
   <section id="execution-basics" class="eval-case">
     <h2>Execution testing</h2>
     <p>Does the agent carry out the task correctly?</p>
@@ -1133,8 +900,443 @@ python3 examples/06-git-workflow/verify.py \
 
 </template>
 
+<!-- ============ PROMPTFOO EVALUATION TECHNIQUES ============ -->
+<section id="promptfoo-techniques">
+  <section id="promptfoo-anatomy" class="eval-case">
+    <h2>Anatomy of a Promptfoo eval</h2>
+    <table>
+      <thead><tr><th>Configuration</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>providers</code></td><td>What runs: a model, an agent, or your application</td></tr>
+        <tr><td><code>prompts</code> + <code>tests.vars</code></td><td>The task and its input cases</td></tr>
+        <tr><td><code>tests.assert</code></td><td>The checks that decide whether each result passes</td></tr>
+      </tbody>
+    </table>
+    <p class="eval-body">Choose the execution environment and the grading method separately.</p>
+    <p class="small">One agent run can have JSON, code, and model-graded assertions.</p>
+    <aside class="notes">
+      <p>So far we checked whether a skill was selected and introduced execution tests. Now broaden the assertions. The provider runs the system under test; an assertion grades evidence from that run. JSON is an output format. An agent is an execution environment. An LLM judge is a grading method. These choices can be combined in one eval.</p>
+      <p>Sources: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/">Promptfoo assertions</a>, <a href="https://www.promptfoo.dev/docs/providers/claude-agent-sdk/">Claude Agent SDK provider</a>.</p>
+    </aside>
+  </section>
+
+  <section id="grader-ladder">
+    <h2>Choosing a grader</h2>
+    <svg class="diagram" viewBox="0 0 960 300" role="img" aria-labelledby="graders-title graders-desc">
+      <title id="graders-title">Choosing a grader</title>
+      <desc id="graders-desc">Five graders from deterministic and free to flexible and costly: exact or regex match, JSON schema, code, LLM rubric, and agent judge.</desc>
+      <defs>
+        <marker id="arrow-graders" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="arrowhead" d="M0,0 L10,5 L0,10 z"/>
+        </marker>
+        <linearGradient id="grad-graders" x1="0" x2="1" y1="0" y2="0">
+          <stop class="grad-start" offset="0"/>
+          <stop class="grad-end" offset="1"/>
+        </linearGradient>
+      </defs>
+      <rect class="box neutral" x="20" y="30" width="164" height="90" rx="10"/>
+      <text class="label-sm" x="102" y="83" text-anchor="middle">Exact / regex</text>
+      <rect class="box neutral" x="209" y="30" width="164" height="90" rx="10"/>
+      <text class="label-sm" x="291" y="83" text-anchor="middle">JSON schema</text>
+      <rect class="box neutral" x="398" y="30" width="164" height="90" rx="10"/>
+      <text class="label-sm" x="480" y="83" text-anchor="middle">Code</text>
+      <rect class="box accent" x="587" y="30" width="164" height="90" rx="10"/>
+      <text class="label-sm" x="669" y="83" text-anchor="middle">LLM rubric</text>
+      <rect class="box accent" x="776" y="30" width="164" height="90" rx="10"/>
+      <text class="label-sm" x="858" y="83" text-anchor="middle">Agent judge</text>
+      <line class="wire" x1="186" y1="75" x2="205" y2="75" marker-end="url(#arrow-graders)"/>
+      <line class="wire" x1="375" y1="75" x2="394" y2="75" marker-end="url(#arrow-graders)"/>
+      <line class="wire" x1="564" y1="75" x2="583" y2="75" marker-end="url(#arrow-graders)"/>
+      <line class="wire" x1="753" y1="75" x2="772" y2="75" marker-end="url(#arrow-graders)"/>
+      <text class="sub" x="102" y="156" text-anchor="middle">status, headings,</text>
+      <text class="sub" x="102" y="180" text-anchor="middle">required text</text>
+      <text class="sub" x="291" y="156" text-anchor="middle">shape and</text>
+      <text class="sub" x="291" y="180" text-anchor="middle">field types</text>
+      <text class="sub" x="480" y="156" text-anchor="middle">exact fields,</text>
+      <text class="sub" x="480" y="180" text-anchor="middle">counts, relations</text>
+      <text class="sub" x="669" y="156" text-anchor="middle">varied wording,</text>
+      <text class="sub" x="669" y="180" text-anchor="middle">preserved facts</text>
+      <text class="sub" x="858" y="156" text-anchor="middle">evidence in</text>
+      <text class="sub" x="858" y="180" text-anchor="middle">files and state</text>
+      <rect x="20" y="214" width="920" height="10" rx="5" fill="url(#grad-graders)"/>
+      <text class="note" x="20" y="260">deterministic · free · repeatable</text>
+      <text class="note" x="940" y="260" text-anchor="end">flexible · costs tokens · needs calibration</text>
+    </svg>
+    <p class="caption">Use the cheapest grader that can express the rule.</p>
+    <p class="small">Combine several checks on one run — schema, code, and a rubric.</p>
+    <aside class="notes">
+      <p>Once we have an output, something must decide whether it passes. Promptfoo supports the whole range. On the left, exact and regex matches and JSON schemas are deterministic, free, and repeatable: use them for a status value, a required heading, or the shape of the output. Code assertions handle exact fields, counts, and relationships, for example that a required label is present.</p>
+      <p>On the right, an LLM rubric judges meaning when correct wording can vary, such as whether a report preserved the user's facts. An agent judge goes further and uses tools to inspect files and state. These are flexible but cost tokens, can vary between runs, and need calibrating against outputs a human has labeled good or bad. A schema pass can hide a wrong value, so one run usually gets several checks.</p>
+      <p>Source: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/">Promptfoo assertion types</a>.</p>
+    </aside>
+  </section>
+
+  <section id="promptfoo-exact-checks" class="eval-case">
+    <h2>Exact checks</h2>
+    <table>
+      <thead><tr><th>Assertion</th><th>Useful for</th></tr></thead>
+      <tbody>
+        <tr><td><code>equals</code></td><td>An exact status or classification</td></tr>
+        <tr><td><code>contains</code> / <code>not-contains</code></td><td>Required or forbidden literal text</td></tr>
+        <tr><td><code>regex</code> / <code>not-regex</code></td><td>A heading or other text pattern</td></tr>
+      </tbody>
+    </table>
+    <pre><code class="language-yaml"># Check a heading, allowing the words elsewhere in the report
+assert:
+  - type: not-regex
+    value: '(^|\n)### \*\*Root Cause\*\*(\r?\n|$)'</code></pre>
+    <p class="eval-body">Make the check as precise as the rule it protects.</p>
+    <aside class="notes">
+      <p>A skipped optional section gives us a concrete example. Forbidding the words Root Cause everywhere would also reject a valid note explaining what was skipped. This expression checks the actual Markdown heading. Exact checks are repeatable and require no judge-model call; choosing the right condition still takes judgment.</p>
+      <p>Source: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/deterministic/">Promptfoo deterministic assertions</a>.</p>
+    </aside>
+  </section>
+
+  <section id="promptfoo-json" class="eval-case">
+    <h2>JSON and schema validation</h2>
+    <div class="two-col">
+      <div>
+        <pre><code class="language-yaml">assert:
+  - type: is-json
+    value:
+      type: object
+      required: [summary, labels]
+      properties:
+        summary:
+          type: string
+        labels:
+          type: array
+          items:
+            type: string</code></pre>
+      </div>
+      <div>
+        <h3>Output matching this schema</h3>
+        <pre><code class="language-json">{
+  "summary": "SBOM pages repeat entries",
+  "labels": ["reported-by-ai"]
+}</code></pre>
+        <p class="eval-body">The required label is<br><code>ai-generated-jira</code>.</p>
+        <p class="eval-body">The shape passes.<br>The label still needs a check.</p>
+      </div>
+    </div>
+    <p class="small"><code>is-json</code>: whole output. <code>contains-json</code>: JSON within other text.</p>
+    <aside class="notes">
+      <p>The schema checks required fields and their types. It intentionally accepts any string in labels, so the wrong label can pass. A schema can also enforce an enum or const; the next slide uses code to show how domain rules can be expressed separately. A provider's structured-output setting constrains generation, while this assertion checks the returned result.</p>
+      <p>Source: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/deterministic/#is-json">Promptfoo JSON assertions and schemas</a>.</p>
+    </aside>
+  </section>
+
+  <section id="promptfoo-code" class="eval-case">
+    <h2>JavaScript assertions</h2>
+    <pre><code class="language-yaml">assert:
+  - type: javascript
+    value: |
+      try {
+        const report = typeof output === 'string'
+          ? JSON.parse(output) : output;
+        const pass = Array.isArray(report?.labels) &amp;&amp;
+          report.labels.includes('ai-generated-jira');
+        return { pass, score: pass ? 1 : 0,
+          reason: pass ? 'Required label present'
+                       : 'Required label missing' };
+      } catch {
+        return { pass: false, score: 0, reason: 'Invalid JSON' };
+      }</code></pre>
+    <p class="eval-body">Use code for exact fields, counts, and relationships.</p>
+    <p class="small">Python assertions are also supported. Larger graders can live in <code>file://</code> scripts.</p>
+    <aside class="notes">
+      <p>The wrong label from the previous slide now fails. Parsing errors fail too, instead of becoming an empty result that accidentally passes. Returning a reason makes a failed assertion easier to investigate. Code can enforce a known contract, but this check alone says nothing about whether the report preserves the user's facts.</p>
+      <p>Source: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/javascript/">Promptfoo JavaScript assertions</a>.</p>
+    </aside>
+  </section>
+
+  <!-- Hidden for now: covered by the trigger test slides. Delete data-visibility="hidden" to show it again. -->
+  <section id="promptfoo-agents" class="eval-case" data-visibility="hidden">
+    <h2>Evaluating an agent</h2>
+    <pre><code class="language-yaml">providers:
+  - id: anthropic:claude-agent-sdk
+    config:
+      working_dir: ./fixtures/consumer
+      setting_sources: ['project']
+      skills: ['security-review']
+prompts:
+  - 'Review src/app.py for security vulnerabilities'
+tests:
+  - assert:
+      - type: skill-used
+        value: security-review</code></pre>
+    <p class="eval-body">A model call produces an answer.<br>An agent run can discover skills and use tools.</p>
+    <p class="small">Invocation metadata establishes selection. Add checks for findings or changed state.</p>
+    <aside class="notes">
+      <p>This provider runs a real coding-agent loop in a fixture project. The skills list makes the named discovered skill available; the natural prompt still leaves the invocation decision to the agent. Promptfoo checks normalized invocation metadata. That proves selection, while an outcome assertion must establish whether the findings are correct. For state-changing tasks, inspect resulting files or Git state and reset the environment between runs.</p>
+      <p>Source: <a href="https://www.promptfoo.dev/docs/providers/claude-agent-sdk/#testing-skill-invocation">Promptfoo agent provider and skill invocation</a>.</p>
+    </aside>
+  </section>
+
+  <section id="promptfoo-llm-judge" class="eval-case">
+    <h2>LLM as a judge</h2>
+    <pre><code class="language-yaml"># Assertion excerpt; source_facts is a test variable
+assert:
+  - type: llm-rubric
+    provider: openai:gpt-5-mini
+    value: |
+      Source facts: {{source_facts}}
+      Pass only if the report preserves the supplied
+      reproduction steps, observed result, and environment.
+      Fail if it invents a root cause or a proposed fix.
+      Cite the relevant output text in your reason.</code></pre>
+    <p class="eval-body">Useful when correct wording can vary.</p>
+    <p class="eval-body">Calibrate the rubric against human-labeled good and bad outputs.</p>
+    <p class="small">The grading model is configured separately from the system under test.</p>
+    <aside class="notes">
+      <p>The judge compares the report with source facts supplied through the rubric. This lets it evaluate meaning when several phrasings would be acceptable. Define concrete pass and fail conditions, inspect its evidence, and check agreement with human judgments. Pin the judge configuration for comparisons. Model grading adds cost and can vary, so retain exact code checks for exact rules.</p>
+      <p>Source: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/model-graded/llm-rubric/">Promptfoo LLM rubric, test variables, and grading-provider overrides</a>.</p>
+    </aside>
+  </section>
+
+  <section id="promptfoo-agent-judge" class="eval-case">
+    <h2>Agent as a judge</h2>
+    <pre><code class="language-yaml">assert:
+  - type: agent-rubric
+    provider:
+      id: anthropic:claude-agent-sdk
+      config:
+        working_dir: ./fixtures/report-output
+    value: |
+      Read source-facts.md and outputs/preview.md.
+      Verify that the preview preserves the source facts.
+      Fail on invented reproduction steps or environment.
+      Cite file evidence for the verdict.</code></pre>
+    <p class="eval-body">The judge gathers evidence from files using tools.</p>
+    <p class="small">Give it the matching run's artifacts and read-only access.</p>
+    <aside class="notes">
+      <p>Earlier the agent was the thing we tested; here the agent is the one doing the grading. The target could be another agent, a model, or an application. Unlike the preceding text-only rubric, this grader needs tools and a workspace containing the evidence. The fixture path is illustrative: stage source-facts.md and the generated preview there for the run being graded. Promptfoo's Claude agent provider defaults to read-only tools. Use code for checks that are already exact and reserve this judge for artifact inspection requiring interpretation.</p>
+      <p>Source: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/model-graded/agent-rubric/">Promptfoo agent rubric and supported grading providers</a>.</p>
+    </aside>
+  </section>
+
+  <section id="promptfoo-evidence" class="eval-case">
+    <h2>Matching checks to evidence</h2>
+    <table>
+      <thead><tr><th>Question</th><th>Evidence and check</th></tr></thead>
+      <tbody>
+        <tr><td>Is the output well formed?</td><td>JSON schema</td></tr>
+        <tr><td>Are exact values correct?</td><td>Parsed fields + code assertions</td></tr>
+        <tr><td>Was the skill invoked?</td><td>Invocation metadata + <code>skill-used</code></td></tr>
+        <tr><td>Were the source facts preserved?</td><td>Reference facts + calibrated LLM rubric</td></tr>
+        <tr><td>Do artifacts support the claim?</td><td>Files or state + code checks / agent judge</td></tr>
+      </tbody>
+    </table>
+    <p class="eval-body">Combine checks for one case, then compare repeated runs.</p>
+    <p class="small">To measure improvement, keep the task and environment fixed and compare with / without the skill.</p>
+    <aside class="notes">
+      <p>Each row answers a different question. A schema pass can coexist with a factual error, and skill invocation can coexist with an incorrect outcome: skill-used tells you the skill was picked. It doesn't tell you the result was right; for that you need one of the other checks. Use independent reference facts and known outputs to validate the graders themselves. Repeated trials reveal variability; a small perfect run is still only a smoke check. Next we compare runs with and without the skill, then use Promptfoo to compare models and agents before CI.</p>
+      <p>Sources: <a href="https://www.promptfoo.dev/docs/configuration/expected-outputs/">Promptfoo assertion types</a>, <a href="https://www.promptfoo.dev/docs/usage/command-line/">Promptfoo repeated eval runs</a>. The combined evidence checklist is guidance for this workshop.</p>
+    </aside>
+  </section>
+</section>
+
+<!-- ============ WITH VS WITHOUT THE SKILL ============ -->
+<section id="paired">
+  <section id="paired-comparison">
+    <h2>With vs without the skill</h2>
+    <svg class="diagram" viewBox="0 0 960 360" role="img" aria-labelledby="paired-title paired-desc">
+      <title id="paired-title">With versus without the skill</title>
+      <desc id="paired-desc">The same tasks and fixtures run without the skill and with it. Pass rate, tokens and time are compared. A clear gain means keep the skill; no gain means delete it.</desc>
+      <defs>
+        <marker id="arrow-paired" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path class="arrowhead" d="M0,0 L10,5 L0,10 z"/>
+        </marker>
+      </defs>
+      <rect class="box" x="20" y="125" width="190" height="110" rx="10"/>
+      <text class="label-sm" x="115" y="166" text-anchor="middle">Same tasks</text>
+      <text class="label-sm" x="115" y="194" text-anchor="middle">+ fixtures</text>
+      <text class="sub" x="115" y="220" text-anchor="middle">fresh each run</text>
+      <rect class="box neutral" x="270" y="20" width="260" height="100" rx="10"/>
+      <text class="label-sm" x="400" y="62" text-anchor="middle">Without skill</text>
+      <text class="sub" x="400" y="92" text-anchor="middle">pass rate · tokens · time</text>
+      <rect class="box accent" x="270" y="240" width="260" height="100" rx="10"/>
+      <text class="label-sm" x="400" y="282" text-anchor="middle">With skill</text>
+      <text class="sub" x="400" y="312" text-anchor="middle">pass rate · tokens · time</text>
+      <path class="wire" d="M210,160 C240,160 240,70 266,70" marker-end="url(#arrow-paired)"/>
+      <path class="wire" d="M210,200 C240,200 240,290 266,290" marker-end="url(#arrow-paired)"/>
+      <rect class="box" x="590" y="130" width="140" height="100" rx="10"/>
+      <text class="label-sm" x="660" y="187" text-anchor="middle">Difference</text>
+      <path class="wire" d="M530,70 C560,70 560,165 586,165" marker-end="url(#arrow-paired)"/>
+      <path class="wire" d="M530,290 C560,290 560,195 586,195" marker-end="url(#arrow-paired)"/>
+      <rect class="box positive" x="780" y="50" width="165" height="100" rx="10"/>
+      <text class="label-sm positive" x="862" y="94" text-anchor="middle">Clear gain</text>
+      <text class="sub" x="862" y="124" text-anchor="middle">keep the skill</text>
+      <rect class="box negative" x="780" y="210" width="165" height="100" rx="10"/>
+      <text class="label-sm negative" x="862" y="254" text-anchor="middle">No gain</text>
+      <text class="sub" x="862" y="284" text-anchor="middle">delete the skill</text>
+      <path class="wire" d="M730,165 C755,165 755,100 776,100" marker-end="url(#arrow-paired)"/>
+      <path class="wire" d="M730,195 C755,195 755,260 776,260" marker-end="url(#arrow-paired)"/>
+    </svg>
+    <p class="caption">Re-run after every model upgrade — newer models outgrow skills.</p>
+    <aside class="notes">
+      <p>This is the top of the pyramid and the question most teams skip: does the skill help at all? Run the same tasks, in the same fixture, with fresh state each time, once without the skill and once with it. Repeat each a few times, because agent runs vary. Compare pass rate, and also tokens and time: a skill that gets the same result faster is still worth having.</p>
+      <p>If there is no gain in either success or cost, the skill is only adding context to every session; delete it. Re-run this after model upgrades. A newer model may already do what the skill teaches, and deleting a skill it has outgrown is a good result. A cheap first check: if with and without score the same, confirm the skill actually loaded before rewriting it.</p>
+      <p>Sources: <a href="https://agentskills.io/skill-creation/evaluating-skills">agentskills.io, evaluating skills</a>, <a href="https://cloud.google.com/blog/topics/developers-practitioners/evaluate-agent-skills-before-they-bloat-your-context-window">Google Cloud, evaluate agent skills before they bloat your context window</a>.</p>
+    </aside>
+  </section>
+
+  <section id="run-more-than-once">
+    <h2>Run it more than once</h2>
+    <svg class="diagram" viewBox="0 0 960 190" role="img" aria-labelledby="repeat-title repeat-desc">
+      <title id="repeat-title">Five runs of the same test</title>
+      <desc id="repeat-desc">The same test runs five times on each side. Without the skill it passes two of five runs; with the skill it passes four of five.</desc>
+      <text class="label-sm" x="20" y="62">Without skill</text>
+      <circle class="box positive" cx="300" cy="55" r="30"/><text class="label positive" x="300" y="64" text-anchor="middle">✓</text>
+      <circle class="box negative" cx="390" cy="55" r="30"/><text class="label negative" x="390" y="64" text-anchor="middle">✗</text>
+      <circle class="box negative" cx="480" cy="55" r="30"/><text class="label negative" x="480" y="64" text-anchor="middle">✗</text>
+      <circle class="box positive" cx="570" cy="55" r="30"/><text class="label positive" x="570" y="64" text-anchor="middle">✓</text>
+      <circle class="box negative" cx="660" cy="55" r="30"/><text class="label negative" x="660" y="64" text-anchor="middle">✗</text>
+      <text class="label" x="760" y="64">2 / 5</text>
+      <text class="label-sm" x="20" y="152">With skill</text>
+      <circle class="box positive" cx="300" cy="145" r="30"/><text class="label positive" x="300" y="154" text-anchor="middle">✓</text>
+      <circle class="box positive" cx="390" cy="145" r="30"/><text class="label positive" x="390" y="154" text-anchor="middle">✓</text>
+      <circle class="box negative" cx="480" cy="145" r="30"/><text class="label negative" x="480" y="154" text-anchor="middle">✗</text>
+      <circle class="box positive" cx="570" cy="145" r="30"/><text class="label positive" x="570" y="154" text-anchor="middle">✓</text>
+      <circle class="box positive" cx="660" cy="145" r="30"/><text class="label positive" x="660" y="154" text-anchor="middle">✓</text>
+      <text class="label" x="760" y="154">4 / 5</text>
+    </svg>
+    <p class="caption">One run is an anecdote. Compare pass rates.</p>
+    <p class="eval-body">Repeats multiply the cost</p>
+    <p class="small">3 cases × 2 configs × 3 repeats = 18 agent runs, plus judge calls</p>
+    <pre><code class="language-bash">npx promptfoo eval --repeat 3 --no-cache</code></pre>
+    <p class="small">Cheap checks on every change. Expensive ones when it matters.</p>
+    <aside class="notes">
+      <p>Agents don't give the same answer twice. The model picks its words with some randomness, and an agent makes many decisions in a row, so small differences add up. Google's team found that more than a third of their benchmark tasks scored differently when they re-ran identical code and prompts. So one pass or one fail tells you very little. Run each case several times and compare pass rates: two out of five against four out of five is a real difference; one pass against one fail is not.</p>
+      <p>Repeats cost money. Every case runs once per configuration and once per repeat, plus any judge calls. Our small with and without example has three cases and two configurations; three repeats makes eighteen agent runs. Three repeats is a smoke check; more repeats give more confidence and cost more. Use --no-cache when measuring, otherwise Promptfoo can reuse earlier answers. The viewer shows tokens, cost, and latency where the provider reports them.</p>
+      <p>To keep the bill down, go back to the pyramid: exact and code checks before judges, a cheaper model as the judge, and the expensive suites only when a skill or model changes. Source: <a href="https://cloud.google.com/blog/topics/developers-practitioners/evaluate-agent-skills-before-they-bloat-your-context-window">Google Cloud, evaluate agent skills before they bloat your context window</a>.</p>
+    </aside>
+  </section>
+</section>
+
+<!-- ============ CHEAPER MODELS AND OTHER AGENTS ============ -->
+<section id="comparing-models-agents">
+  <section id="cheaper-model">
+    <h2>Can a cheaper model do it?</h2>
+    <svg class="diagram" viewBox="0 0 960 310" role="img" aria-labelledby="cheap-title cheap-desc">
+      <title id="cheap-title">Strong and cheaper models, with and without the skill</title>
+      <desc id="cheap-desc">A two by two grid. The strong model passes with and without the skill, so the skill may be outgrown. The cheaper model fails without the skill and passes with it, so the skill lets you run the cheaper model.</desc>
+      <text class="label-sm" x="370" y="40" text-anchor="middle">Without skill</text>
+      <text class="label-sm" x="590" y="40" text-anchor="middle">With skill</text>
+      <text class="label-sm" x="20" y="105">Strong model</text>
+      <text class="sub" x="20" y="132">larger, pricier</text>
+      <rect class="box positive" x="270" y="60" width="200" height="100" rx="10"/>
+      <text class="label positive" x="370" y="118" text-anchor="middle">✓ pass</text>
+      <rect class="box positive" x="490" y="60" width="200" height="100" rx="10"/>
+      <text class="label positive" x="590" y="118" text-anchor="middle">✓ pass</text>
+      <text class="label-sm" x="718" y="104">Same either way</text>
+      <text class="note" x="718" y="132">skill outgrown: delete</text>
+      <text class="label-sm" x="20" y="235">Cheaper model</text>
+      <text class="sub" x="20" y="262">smaller, faster</text>
+      <rect class="box negative" x="270" y="190" width="200" height="100" rx="10"/>
+      <text class="label negative" x="370" y="248" text-anchor="middle">✗ fail</text>
+      <rect class="box positive" x="490" y="190" width="200" height="100" rx="10"/>
+      <text class="label positive" x="590" y="248" text-anchor="middle">✓ pass</text>
+      <text class="label-sm" x="718" y="234">Skill closes the gap</text>
+      <text class="note" x="718" y="262">run the cheaper model</text>
+    </svg>
+    <p class="caption">A skill can pay for itself by letting a cheaper model do the job.</p>
+    <p class="small">An example outcome, not a measured result. Run your own cases to find out.</p>
+    <aside class="notes">
+      <p>With and without asks whether the skill helps. Add a second model and you can ask a money question: does the skill let a smaller, cheaper model do the job?</p>
+      <p>Read the grid by rows. If the strong model passes either way, the skill adds nothing for that model; that's the "delete it" case we saw. If the cheaper model fails without the skill but passes with it, the skill is worth real money: you can switch models for that task. There's a third outcome too: the cheaper model fails even with the skill. Then the skill depends on a strong model. Simplify the steps, or move the hard parts into scripts, and test again.</p>
+      <p>This matters most if you want to run agents on smaller or self-hosted models. The grid shows possible outcomes, not results we measured; the next slide shows how to set up the comparison.</p>
+    </aside>
+  </section>
+
+  <section id="comparison-basics" class="eval-case">
+    <h2>Comparing models in Promptfoo</h2>
+    <pre><code class="language-yaml">providers:
+  - id: anthropic:claude-agent-sdk
+    label: sonnet-no-skill
+    config: { model: claude-sonnet-5-5, working_dir: ./fixtures/baseline }
+  - id: anthropic:claude-agent-sdk
+    label: sonnet-with-skill
+    config: { model: claude-sonnet-5-5, working_dir: ./fixtures/with-skill }
+  - id: anthropic:claude-agent-sdk
+    label: haiku-no-skill
+    config: { model: claude-haiku-5-5, working_dir: ./fixtures/baseline }
+  - id: anthropic:claude-agent-sdk
+    label: haiku-with-skill
+    config: { model: claude-haiku-5-5, working_dir: ./fixtures/with-skill }</code></pre>
+    <p class="eval-body">Same tasks and checks. Only model and workspace change.</p>
+    <p class="small">The with-skill workspace has the skill installed; the baseline does not.</p>
+    <aside class="notes">
+      <p>Each provider entry is one cell of the grid. All four use the same agent, the same prompts, and the same assertions. Two settings change: the model, and the workspace. The baseline workspace has no skill; the with-skill workspace has it installed, and those providers also get setting_sources project and the skills list, as in the trigger test. The labels become columns in the Promptfoo viewer, so you read the grid straight off the results.</p>
+      <p>Keep everything else fixed, use the outcome checks from earlier rather than skill-used, which would correctly fail for the baseline, and repeat the runs. Four configurations multiply the cost: cases times four times repeats. The model names are examples; use the ones you would actually choose between.</p>
+      <p>Sources: <a href="https://www.promptfoo.dev/docs/providers/claude-agent-sdk/">Promptfoo Claude Agent SDK provider</a>.</p>
+    </aside>
+  </section>
+
+  <section id="comparison-design" class="eval-case">
+    <h2>Comparing agents in Promptfoo</h2>
+    <pre><code class="language-yaml">providers:
+  - id: anthropic:claude-agent-sdk
+    label: claude-defaults
+    config:
+      working_dir: ./fixtures/consumer
+  - id: openai:codex-sdk
+    label: codex-defaults
+    config:
+      working_dir: ./fixtures/consumer
+      sandbox_mode: read-only
+      approval_policy: never</code></pre>
+    <p class="eval-body">The same question across agents: does your setup work in both?</p>
+    <p class="small">This compares complete setups, including their configured models and tools.</p>
+    <aside class="notes">
+      <p>This is the provider portion of a second config. Save it at the workshop root so the fixture path resolves correctly, then append the shared task from the next slide. Install and authenticate the corresponding agent SDKs. This is the cross-agent version of the cheaper-model question: same fixture, same task, different agent. Claude's provider gives read-only tools when working_dir is set; Codex is explicitly configured read-only. These defaults can use different models, so the result describes the complete configurations. To compare model choices within one agent, repeat that agent provider with different config.model values.</p>
+      <p>Sources: <a href="https://www.promptfoo.dev/docs/providers/claude-agent-sdk/">Promptfoo Claude Agent SDK provider</a>, <a href="https://www.promptfoo.dev/docs/providers/openai-codex-sdk/">Promptfoo Codex SDK provider</a>.</p>
+    </aside>
+  </section>
+
+  <section id="comparison-promptfoo" class="eval-case">
+    <h2>Shared tests for agent runs</h2>
+    <pre><code class="language-yaml"># Append to the agent provider configuration
+prompts:
+  - &gt;
+    Read src/app.py. Which database module is imported?
+    Return only the module name.
+tests:
+  - assert:
+      - type: equals
+        value: sqlite3</code></pre>
+    <p class="eval-body">Both agents receive the same task and success criterion.</p>
+    <p class="small">The fixture supplies the evidence. The assertion supplies the expected answer.</p>
+    <aside class="notes">
+      <p>The workshop fixture imports sqlite3 in src/app.py, giving this introductory task a checkable answer. This assertion checks the final answer; it does not prove that the agent read the file. Add trace checks when tool use is part of the requirement. The same provider pattern can reuse richer outcome checks or supported skill-invocation assertions from earlier slides. </p>
+      <p>Sources: <code>fixtures/consumer/src/app.py</code>, <a href="https://www.promptfoo.dev/docs/guides/evaluate-coding-agents/">Promptfoo shared tasks and agent evidence</a>.</p>
+    </aside>
+  </section>
+
+  <section id="comparison-results" class="eval-case">
+    <h2>Run and compare</h2>
+    <pre><code class="language-bash"># Run the chosen promptfooconfig.yaml
+npx promptfoo eval --repeat 3 --no-cache
+npx promptfoo view</code></pre>
+    <table>
+      <thead><tr><th>In the comparison</th><th>Look for</th></tr></thead>
+      <tbody>
+        <tr><td>Results by provider</td><td>Which cases pass, and why others fail</td></tr>
+        <tr><td>Repeated attempts</td><td>Whether results vary between runs</td></tr>
+        <tr><td>Usage and timing</td><td>Latency and reported token usage or cost</td></tr>
+      </tbody>
+    </table>
+    <p class="small">Cost reporting depends on the provider. Three repeats are a smoke check.</p>
+    <aside class="notes">
+      <p>Run either the model config or the combined agent config, each saved as promptfooconfig.yaml. The viewer lets us inspect outputs and assertions by provider. Repeats should execute fresh calls, and state-changing tests also need fresh environments. Pin model and runtime versions, use representative cases, and keep grading fixed for meaningful comparisons. Provider metadata determines which usage and cost fields are available. No results from these illustrative comparisons are claimed here.</p>
+      <p>Sources: <a href="https://www.promptfoo.dev/docs/usage/command-line/">Promptfoo eval, repeat, cache, and viewer commands</a>, <a href="https://www.promptfoo.dev/docs/guides/gpt-vs-claude-vs-gemini/">Promptfoo comparison results</a>.</p>
+    </aside>
+  </section>
+</section>
+
 <!-- ============ REPORT-BUG EXECUTION EVAL CASE STUDY ============ -->
-<section id="report-bug-evals">
+<!-- Hidden for now: delete data-visibility="hidden" to show this section again. -->
+<section id="report-bug-evals" data-visibility="hidden">
   <section id="report-bug-contract" class="eval-case">
     <h2>Evaluating report-bug</h2>
     <p class="eval-body">Does the invoked skill follow the bug-report contract?</p>
@@ -1289,13 +1491,75 @@ SKIP</code></pre>
   </section>
 </section>
 
+<!-- ============ CI ============ -->
+<section id="ci">
+  <section id="ci-overview">
+    <h2>Taking it to CI</h2>
+    <p>Catch regressions before they ship</p>
+  </section>
+
+  <section>
+    <h2>GitHub Actions</h2>
+    <pre class="dense"><code class="language-yaml">on:
+  pull_request:
+    paths: ['plugins/**/skills/*/SKILL.md', 'plugins/**/skills/*/evals/**']
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        config:   # one entry per eval config
+          - plugins/dev/skills/security-review/evals/trigger-tests.yaml
+          - plugins/dev/skills/security-review/evals/execution-tests.yaml
+    steps:
+      - uses: actions/checkout@v4
+      - uses: promptfoo/promptfoo-action@v1
+        with:
+          config: ${{ matrix.config }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        env: { ANTHROPIC_API_KEY: '${{ secrets.ANTHROPIC_API_KEY }}' }</code></pre>
+    <p class="small">Only runs when SKILL.md or eval files change. Full workflow: <code>.github/workflows/skill-evals.yml</code></p>
+  </section>
+
+  <section>
+    <h2>Progressive rollout</h2>
+    <br>
+    <ol>
+      <li>Start informational — report results, don't block</li>
+      <li>Build confidence — team sees what tests catch</li>
+      <li>Flip to blocking gate</li>
+    </ol>
+    <br>
+    <p>Re-run the suite when you change models, not only when skills change</p>
+    <p class="small">Track run cost and judge cost alongside pass rates.</p>
+  </section>
+</section>
+
 <!-- ============ CLOSING ============ -->
-<section>
-  <h1>Questions?</h1>
+<section id="start-here">
+  <h2>Start here</h2>
   <br>
-  <table>
+  <ol>
+    <li>Pick one skill in your project</li>
+    <li>Add trigger tests — positive, near-miss, negative</li>
+    <li>Run them with and without the skill</li>
+    <li>Add them to CI as informational</li>
+  </ol>
+  <br>
+  <p class="small">Step 2 takes 15 minutes. It will tell you more than rereading the SKILL.md.</p>
+  <aside class="notes">
+    <p>If you take one thing away: pick a skill you already rely on and give it a trigger test today, one positive, one near-miss, one negative. Then run the same tasks with and without the skill to see whether it earns its place. Put it in CI as a report first. The companion repository has working versions of every step.</p>
+  </aside>
+</section>
+
+<section id="questions">
+  <h1>Questions?</h1>
+  <table class="refs">
+    <tr><td>Article, part 1</td><td><a href="https://developers.redhat.com/articles/2026/07/27/standardize-project-context-agentsmd-and-agent-skills">Standardize project context with AGENTS.md and Agent Skills</a></td></tr>
+    <tr><td>Article, part 2</td><td><a href="https://developers.redhat.com/articles/2026/10/01/master-your-skills-building-skills-you-can-trust">Master your skills: Building skills you can trust</a></td></tr>
     <tr><td>Agent Skills spec</td><td><a href="https://agentskills.io">agentskills.io</a></td></tr>
     <tr><td>AGENTS.md spec</td><td><a href="https://agents.md">agents.md</a></td></tr>
+    <tr><td>Evaluating skills</td><td><a href="https://agentskills.io/skill-creation/evaluating-skills">agentskills.io/skill-creation/evaluating-skills</a></td></tr>
     <tr><td>promptfoo guide</td><td><a href="https://www.promptfoo.dev/docs/guides/test-agent-skills/">promptfoo.dev/docs/guides/test-agent-skills</a></td></tr>
     <tr><td>Companion repo</td><td><a href="https://github.com/dejanb/skill-workshop">github.com/dejanb/skill-workshop</a></td></tr>
   </table>
@@ -1308,13 +1572,6 @@ SKIP</code></pre>
 <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
 <script>
-  // Toggle this to show/hide extended sections
-  const FULL_VERSION = true;
-
-  if (!FULL_VERSION) {
-    document.querySelectorAll('section.extended').forEach(s => s.remove());
-  }
-
   Reveal.initialize({
     hash: true,
     slideNumber: true,
