@@ -1287,14 +1287,16 @@ assert:
       sandbox_mode: read-only
       approval_policy: never</code></pre>
     <p class="eval-body">The same question across agents: does your setup work in both?</p>
+    <p class="eval-body">Both get the same prompts and the same checks.</p>
     <p class="small">This compares complete setups, including their configured models and tools.</p>
     <aside class="notes">
-      <p>This is the provider portion of a second config. Save it at the workshop root so the fixture path resolves correctly, then append the shared task from the next slide. Install and authenticate the corresponding agent SDKs. This is the cross-agent version of the cheaper-model question: same fixture, same task, different agent. Claude's provider gives read-only tools when working_dir is set; Codex is explicitly configured read-only. These defaults can use different models, so the result describes the complete configurations. To compare model choices within one agent, repeat that agent provider with different config.model values.</p>
+      <p>This is the provider portion of a second config. Save it at the workshop root so the fixture path resolves correctly, then add the prompts and tests you want both agents to run, such as the outcome checks from earlier. Install and authenticate the corresponding agent SDKs. This is the cross-agent version of the cheaper-model question: same fixture, same task, different agent. Claude's provider gives read-only tools when working_dir is set; Codex is explicitly configured read-only. These defaults can use different models, so the result describes the complete configurations. To compare model choices within one agent, repeat that agent provider with different config.model values.</p>
       <p>Sources: <a href="https://www.promptfoo.dev/docs/providers/claude-agent-sdk/">Promptfoo Claude Agent SDK provider</a>, <a href="https://www.promptfoo.dev/docs/providers/openai-codex-sdk/">Promptfoo Codex SDK provider</a>.</p>
     </aside>
   </section>
 
-  <section id="comparison-promptfoo" class="eval-case">
+  <!-- Hidden for now: "Comparing agents" covers the shared tests. Delete data-visibility="hidden" to show it again. -->
+  <section id="comparison-promptfoo" class="eval-case" data-visibility="hidden">
     <h2>Shared tests for agent runs</h2>
     <pre><code class="language-yaml"># Append to the agent provider configuration
 prompts:
