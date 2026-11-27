@@ -28,6 +28,10 @@ Press **T** to switch themes while keeping your place, or open the
 [dark presentation](http://localhost:8000/slides.html?theme=dark).
 The selected theme is stored in the URL. Press **S** for speaker notes.
 
+The deck works offline: reveal.js 5.1.0 (MIT) and its fonts are bundled in
+`vendor/reveal.js/`. For a backup copy, open `slides.html?print-pdf` in Chrome
+and print to PDF.
+
 The report-bug case study is currently hidden with `data-visibility="hidden"`
 on its section in `slides.html`. Remove that attribute to show it again.
 
